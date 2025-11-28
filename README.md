@@ -1,8 +1,16 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coup Game
+
+A multiplayer Coup card game built with Next.js, featuring 3D rendered cards and real-time gameplay using Socket.io.
 
 ## Getting Started
 
-First, run the development server:
+First, install dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
@@ -18,7 +26,15 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Game Rules
+
+See [Rules.md](./Rules.md) for the complete game rules.
+
+## Technologies Used
+
+- Next.js for the frontend framework
+- Socket.io for real-time multiplayer functionality
+- 3D card rendering (implementation details to be added)
 
 ## Learn More
 
