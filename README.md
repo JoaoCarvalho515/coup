@@ -10,15 +10,25 @@ First, install dependencies:
 npm install
 ```
 
-Then, run the development server:
+Create a `.env.local` file in the root directory:
 
 ```bash
+cp .env.local.example .env.local
+```
+
+Then, run both the PartyKit server and Next.js development server:
+
+```bash
+# Terminal 1: Start PartyKit server
+npx partykit dev
+
+# Terminal 2: Start Next.js
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The PartyKit server will run on `localhost:1999` and handle all real-time multiplayer synchronization.
 
 ## Game Rules
 
