@@ -1,7 +1,5 @@
+import { MainMenu } from "@/components/main-menu";
+
 export default function Home() {
-  return (
-    <div>
-      
-    </div>
-  );
+  return <MainMenu />
 }

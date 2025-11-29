@@ -65,6 +65,7 @@ export interface GameState {
     pendingAction: ActionRequest | null;
     pendingBlock: BlockRequest | null;
     pendingChallenge: ChallengeRequest | null;
+    pendingExchangeCards: Card[] | null;
     winner: string | null;
     log: GameLogEntry[];
 }
@@ -194,6 +195,7 @@ export function initializeGame(playerNames: string[]): GameState {
         pendingAction: null,
         pendingBlock: null,
         pendingChallenge: null,
+        pendingExchangeCards: null,
         winner: null,
         log: [{
             timestamp: Date.now(),
@@ -428,6 +430,12 @@ export function resolveAction(state: GameState): void {
 
         case 'exchange':
             // Exchange requires player to choose cards, so we enter exchange phase
+            // Draw 2 cards from deck
+            const drawnCards: Card[] = [];
+            for (let i = 0; i < 2 && state.courtDeck.length > 0; i++) {
+                drawnCards.push(state.courtDeck.pop()!);
+            }
+            state.pendingExchangeCards = drawnCards;
             state.phase = 'exchange';
             addLog(state, `${actor.name} exchanges cards`, actor.id, action.type);
             return; // Don't end turn yet
@@ -513,8 +521,10 @@ export function challengeAction(
 
         // If challenging a block, the action goes through
         if (challenge.isBlockChallenge) {
+            // Block challenge failed, so block stands. Action is blocked.
             newState.pendingBlock = null;
-            resolveAction(newState);
+            newState.pendingAction = null;
+            endTurn(newState);
         } else {
             // Action succeeds
             resolveAction(newState);
@@ -577,7 +587,6 @@ export function loseInfluence(state: GameState, playerId: string, cardId?: strin
 
     if (card) {
         card.revealed = true;
-        state.discardPile.push(card);
         addLog(state, `${player.name} loses influence (${card.character})`, playerId);
 
         // Check if player is eliminated
@@ -611,11 +620,8 @@ export function exchangeCards(
         throw new Error('Invalid player for exchange');
     }
 
-    // Draw 2 cards from deck
-    const drawnCards: Card[] = [];
-    for (let i = 0; i < 2 && newState.courtDeck.length > 0; i++) {
-        drawnCards.push(newState.courtDeck.pop()!);
-    }
+    // Get cards from pending exchange
+    const drawnCards = newState.pendingExchangeCards || [];
 
     // Combine current cards with drawn cards
     const allCards = [...player.cards.filter(c => !c.revealed), ...drawnCards];
@@ -636,6 +642,7 @@ export function exchangeCards(
     newState.courtDeck = shuffleDeck(newState.courtDeck);
 
     newState.pendingAction = null;
+    newState.pendingExchangeCards = null;
     endTurn(newState);
 
     return newState;
