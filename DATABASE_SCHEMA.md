@@ -1,130 +1,61 @@
 # Coup Game Database Schema
 
 ## Overview
-The database is designed to support a multiplayer Coup card game with real-time gameplay, tracking game state, players, cards, and actions.
+The database is simplified to only store game codes. All game logic (players, cards, turns, actions) is handled entirely on the client-side.
 
 ## Database Tables
 
-### 1. `games`
-Stores game metadata and current state.
+### `games`
+Stores only the game join codes.
 
 **Columns:**
 - `id` (uuid, PK): Unique game identifier
-- `code` (text, unique): 6-character join code
-- `status` (text): Game status - 'waiting', 'active', 'completed'
-- `phase` (text): Current game phase - 'waiting', 'action', 'block_window', 'challenge_window', 'resolving', 'exchange', 'game_over'
-- `current_player_index` (integer): Index of current player's turn
-- `winner_id` (uuid, FK): ID of winning player
-- `created_at`, `updated_at` (timestamptz): Timestamps
+- `code` (text, unique): 6-character join code for players to join the game
+- `created_at` (timestamptz): Timestamp when game was created
 
-### 2. `players`
-Stores player information within each game.
+## Design Philosophy
 
-**Columns:**
-- `id` (uuid, PK): Unique player identifier
-- `game_id` (uuid, FK): Reference to game
-- `user_id` (uuid, FK): Reference to authenticated user (optional)
-- `name` (text): Player display name
-- `coins` (integer): Number of coins (starts at 2)
-- `is_alive` (boolean): Whether player is still in game
-- `player_order` (integer): Turn order position
-- `created_at`, `updated_at` (timestamptz): Timestamps
-
-### 3. `cards`
-Stores all cards in the game with their current location.
-
-**Columns:**
-- `id` (uuid, PK): Unique card identifier
-- `game_id` (uuid, FK): Reference to game
-- `player_id` (uuid, FK): Reference to player (if in hand)
-- `character` (text): Card type - 'Duke', 'Assassin', 'Captain', 'Ambassador', 'Contessa'
-- `location` (text): Current location - 'player_hand', 'court_deck', 'discard_pile'
-- `revealed` (boolean): Whether card has been revealed
-- `card_order` (integer): Position in deck/hand
-- `created_at`, `updated_at` (timestamptz): Timestamps
-
-### 4. `game_actions`
-Logs all actions taken during the game.
-
-**Columns:**
-- `id` (uuid, PK): Unique action identifier
-- `game_id` (uuid, FK): Reference to game
-- `player_id` (uuid, FK): Player who took action
-- `action_type` (text): Type of action - 'income', 'foreign_aid', 'coup', 'tax', 'assassinate', 'steal', 'exchange', 'block', 'challenge'
-- `target_player_id` (uuid, FK): Target of action (if applicable)
-- `claimed_character` (text): Character claimed for action
-- `result` (text): Outcome of action
-- `created_at` (timestamptz): Timestamp
-
-### 5. `pending_actions`
-Stores current pending action/block/challenge (one per game).
-
-**Columns:**
-- `id` (uuid, PK): Unique identifier
-- `game_id` (uuid, FK, unique): Reference to game
-- `action_type` (text): Type of pending action
-- `actor_id` (uuid, FK): Player performing action
-- `target_id` (uuid, FK): Target player (if applicable)
-- `claimed_character` (text): Character claimed
-- `is_block` (boolean): Whether this is a block
-- `blocker_id` (uuid, FK): Player blocking (if applicable)
-- `is_challenge` (boolean): Whether this is a challenge
-- `challenger_id` (uuid, FK): Player challenging (if applicable)
-- `created_at` (timestamptz): Timestamp
+This schema follows a **minimal backend** approach where:
+- The database only facilitates game discovery via join codes
+- All game state (players, cards, coins, turns, etc.) is managed client-side
+- Game logic and rules are implemented in `lib/game-logic.ts`
+- Real-time synchronization can be handled via WebRTC, WebSockets, or similar peer-to-peer technologies
 
 ## Row Level Security (RLS)
 
-All tables have RLS enabled with the following policies:
+Simple public access policies:
 
 ### Games
-- Anyone can view and create games
-- Only players in the game can update it
-
-### Players
-- Anyone can view and create players
-- Players can update their own records
-
-### Cards
-- Players can view cards in their game
-- System has full access for game mechanics
-
-### Game Actions
-- Players can view actions in their game
-- Players can create actions in their game
-
-### Pending Actions
-- Players can view pending actions in their game
-- System has full access for game mechanics
-
-## Indexes
-
-Performance indexes created on:
-- `games.code` - for quick game lookup by join code
-- `games.status` - for filtering active games
-- `players.game_id` - for player queries by game
-- `cards.game_id`, `cards.player_id` - for card queries
-- `game_actions.game_id` - for action history
+- Anyone can view games (SELECT)
+- Anyone can create games (INSERT)
 
 ## Helper Functions
 
 See `lib/db-helpers.ts` for utility functions:
-- `createGame()` - Create new game
-- `getGameByCode()` - Find game by join code
-- `addPlayerToGame()` - Add player to game
-- `createDeck()` - Initialize card deck
-- `dealCardsToPlayer()` - Deal cards to player
-- `startGame()` - Start game and deal initial cards
-- `updateGameState()` - Update game phase/status
-- `logGameAction()` - Log player actions
-- `revealCard()` - Reveal a card (lose influence)
+- `generateGameCode()` - Generate unique 6-character code
+- `createGame(code?)` - Create new game with optional custom code
+- `getGameByCode(code)` - Find game by join code
+- `getGameById(gameId)` - Find game by ID
+- `gameCodeExists(code)` - Check if a code is already in use
 
 ## TypeScript Types
 
 Generated types available in `lib/database.types.ts` and typed Supabase client in `lib/supabase.ts`.
 
+## Client-Side Game Logic
+
+All game mechanics are implemented in `lib/game-logic.ts`:
+- Player management
+- Card deck and dealing
+- Turn order
+- Actions (income, foreign aid, coup, tax, assassinate, steal, exchange)
+- Blocking and challenging
+- Influence tracking
+- Win conditions
+
 ## Next Steps
 
-1. Implement real-time subscriptions for live game updates
-2. Create API routes for game actions
+1. Implement client-side state management (React Context, Zustand, or similar)
+2. Set up peer-to-peer communication for game synchronization
 3. Build UI components for game creation and joining
-4. Implement game logic using the database schema
+4. Implement game flow using client-side logic
