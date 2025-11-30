@@ -66,6 +66,7 @@ export interface GameState {
     pendingBlock: BlockRequest | null;
     pendingChallenge: ChallengeRequest | null;
     pendingExchangeCards: Card[] | null;
+    pendingInfluenceLoss: string | null; // Player ID who needs to choose a card to reveal
     winner: string | null;
     log: GameLogEntry[];
 }
@@ -77,6 +78,7 @@ export type GamePhase =
     | 'challenge_window' // Players can challenge action or block
     | 'resolving'      // Resolving action/challenge/block
     | 'exchange'       // Ambassador is choosing cards to exchange
+    | 'lose_influence' // Player must choose a card to reveal
     | 'game_over';
 
 export interface GameLogEntry {
@@ -143,7 +145,7 @@ export function createDeck(): Card[] {
     const characters: CharacterType[] = ['Duke', 'Assassin', 'Captain', 'Ambassador', 'Contessa'];
     const deck: Card[] = [];
 
-    characters.forEach((character, charIndex) => {
+    characters.forEach((character) => {
         for (let i = 0; i < 3; i++) {
             deck.push({
                 id: `${character}-${i}`,
@@ -165,8 +167,8 @@ export function shuffleDeck(deck: Card[]): Card[] {
     return shuffled;
 }
 
-export function initializeGame(playerNames: string[]): GameState {
-    if (playerNames.length < 2 || playerNames.length > 6) {
+export function initializeGame(playersList: { id: string; name: string }[]): GameState {
+    if (playersList.length < 2 || playersList.length > 6) {
         throw new Error('Game requires 2-6 players');
     }
 
@@ -174,11 +176,11 @@ export function initializeGame(playerNames: string[]): GameState {
     const players: Player[] = [];
 
     // Deal 2 cards to each player
-    playerNames.forEach((name, index) => {
+    playersList.forEach((p) => {
         const playerCards = [deck.pop()!, deck.pop()!];
         players.push({
-            id: `player-${index}`,
-            name,
+            id: p.id,
+            name: p.name,
             coins: 2,
             cards: playerCards,
             isAlive: true,
@@ -196,6 +198,7 @@ export function initializeGame(playerNames: string[]): GameState {
         pendingBlock: null,
         pendingChallenge: null,
         pendingExchangeCards: null,
+        pendingInfluenceLoss: null,
         winner: null,
         log: [{
             timestamp: Date.now(),
@@ -309,6 +312,11 @@ export function canBlock(
         return { valid: false, reason: `${character} cannot block this action` };
     }
 
+    // Players cannot block their own actions
+    if (state.pendingAction.actorId === playerId) {
+        return { valid: false, reason: 'Cannot block your own action' };
+    }
+
     // Check if player is the target (for targeted actions) or any player (for foreign aid)
     if (state.pendingAction.type !== 'foreign_aid' &&
         state.pendingAction.targetId !== playerId) {
@@ -332,8 +340,27 @@ export function canChallenge(
         return { valid: false, reason: 'Cannot challenge yourself' };
     }
 
-    if (state.phase !== 'challenge_window' && state.phase !== 'block_window') {
+    // Challenges are only allowed during the challenge window
+    if (state.phase !== 'challenge_window') {
         return { valid: false, reason: 'Not in challenge phase' };
+    }
+
+    // There must be a character claim to challenge: either from a block or from the action itself
+    const hasClaimToChallenge = Boolean(state.pendingBlock?.claimedCharacter || state.pendingAction?.claimedCharacter);
+    if (!hasClaimToChallenge) {
+        return { valid: false, reason: 'Nothing to challenge' };
+    }
+
+    if (state.pendingBlock) {
+        // Challenge against block
+        if (targetPlayerId !== state.pendingBlock.blockerId) {
+            return { valid: false, reason: 'Must challenge the active block' };
+        }
+    } else if (state.pendingAction) {
+        // Challenge against action
+        if (targetPlayerId !== state.pendingAction.actorId) {
+            return { valid: false, reason: 'Must challenge the active player' };
+        }
     }
 
     return { valid: true };
@@ -366,14 +393,12 @@ export function performAction(state: GameState, action: ActionRequest): GameStat
     newState.pendingAction = action;
 
     // Actions that can be challenged or blocked go to appropriate window
-    if (requirements.character || requirements.canBeBlocked) {
-        if (requirements.canBeBlocked) {
-            newState.phase = 'block_window';
-            addLog(newState, `${actor.name} attempts ${action.type}`, action.actorId, action.type);
-        } else {
-            newState.phase = 'challenge_window';
-            addLog(newState, `${actor.name} claims ${requirements.character} to ${action.type}`, action.actorId, action.type);
-        }
+    if (requirements.character) {
+        newState.phase = 'challenge_window';
+        addLog(newState, `${actor.name} claims ${requirements.character} to ${action.type}`, action.actorId, action.type);
+    } else if (requirements.canBeBlocked) {
+        newState.phase = 'block_window';
+        addLog(newState, `${actor.name} attempts ${action.type}`, action.actorId, action.type);
     } else {
         // Income and Coup resolve immediately
         resolveAction(newState);
@@ -402,8 +427,11 @@ export function resolveAction(state: GameState): void {
 
         case 'coup':
             if (target) {
-                loseInfluence(state, target.id);
                 addLog(state, `${actor.name} coups ${target.name}`, actor.id, action.type);
+                addLog(state, `${target.name} must lose influence`, target.id);
+                state.pendingInfluenceLoss = target.id;
+                state.phase = 'lose_influence';
+                return; // Wait for card selection
             }
             break;
 
@@ -414,8 +442,11 @@ export function resolveAction(state: GameState): void {
 
         case 'assassinate':
             if (target) {
-                loseInfluence(state, target.id);
                 addLog(state, `${actor.name} assassinates ${target.name}`, actor.id, action.type);
+                addLog(state, `${target.name} must lose influence`, target.id);
+                state.pendingInfluenceLoss = target.id;
+                state.phase = 'lose_influence';
+                return; // Wait for card selection
             }
             break;
 
@@ -501,7 +532,9 @@ export function challengeAction(
     if (hasCharacter) {
         // Challenge failed - challenger loses influence
         addLog(newState, `${target.name} reveals ${challenge.claimedCharacter}! Challenge failed.`, target.id);
-        loseInfluence(newState, challenger.id);
+        addLog(newState, `${challenger.name} must lose influence`, challenger.id);
+        newState.pendingInfluenceLoss = challenger.id;
+        newState.phase = 'lose_influence';
 
         // Target reveals and shuffles back the card
         const cardIndex = target.cards.findIndex(
@@ -519,30 +552,19 @@ export function challengeAction(
             }
         }
 
-        // If challenging a block, the action goes through
+        // Store what to do after influence is lost
         if (challenge.isBlockChallenge) {
             // Block challenge failed, so block stands. Action is blocked.
-            newState.pendingBlock = null;
-            newState.pendingAction = null;
-            endTurn(newState);
+            // Will resolve after influence loss
         } else {
-            // Action succeeds
-            resolveAction(newState);
+            // Action will succeed after influence loss
         }
     } else {
         // Challenge succeeded - target loses influence
         addLog(newState, `${target.name} doesn't have ${challenge.claimedCharacter}! Challenge succeeded.`, target.id);
-        loseInfluence(newState, target.id);
-
-        // If challenging a block, the block fails and action goes through
-        if (challenge.isBlockChallenge) {
-            newState.pendingBlock = null;
-            resolveAction(newState);
-        } else {
-            // Action fails
-            newState.pendingAction = null;
-            endTurn(newState);
-        }
+        addLog(newState, `${target.name} must lose influence`, target.id);
+        newState.pendingInfluenceLoss = target.id;
+        newState.phase = 'lose_influence';
     }
 
     return newState;
@@ -561,8 +583,17 @@ export function passChallenge(state: GameState): GameState {
             newState.pendingAction = null;
             endTurn(newState);
         } else {
-            // Action succeeds
-            resolveAction(newState);
+            // Action unchallenged
+            // Check if it can be blocked
+            const action = newState.pendingAction!;
+            const requirements = ACTION_REQUIREMENTS[action.type];
+
+            if (requirements.canBeBlocked) {
+                newState.phase = 'block_window';
+            } else {
+                // Action succeeds
+                resolveAction(newState);
+            }
         }
     }
 
@@ -589,6 +620,9 @@ export function loseInfluence(state: GameState, playerId: string, cardId?: strin
         card.revealed = true;
         addLog(state, `${player.name} loses influence (${card.character})`, playerId);
 
+        // Clear pending influence loss
+        state.pendingInfluenceLoss = null;
+
         // Check if player is eliminated
         if (getPlayerInfluence(player) === 0) {
             player.isAlive = false;
@@ -600,7 +634,44 @@ export function loseInfluence(state: GameState, playerId: string, cardId?: strin
                 state.winner = alivePlayers[0].id;
                 state.phase = 'game_over';
                 addLog(state, `${alivePlayers[0].name} wins!`, alivePlayers[0].id);
+                return;
             }
+        }
+
+        // Continue game after influence loss
+        if (state.pendingChallenge) {
+            // Was from a challenge, resolve based on challenge outcome
+            const wasChallengeSuccessful = state.pendingChallenge.targetPlayerId === playerId;
+
+            if (state.pendingChallenge.isBlockChallenge) {
+                if (wasChallengeSuccessful) {
+                    // Block was fake, action goes through
+                    state.pendingBlock = null;
+                    resolveAction(state);
+                } else {
+                    // Block was real, action is blocked
+                    state.pendingBlock = null;
+                    state.pendingAction = null;
+                    endTurn(state);
+                }
+            } else {
+                if (wasChallengeSuccessful) {
+                    // Action was fake, turn ends
+                    state.pendingAction = null;
+                    endTurn(state);
+                } else {
+                    // Action was real, it succeeds
+                    resolveAction(state);
+                }
+            }
+            state.pendingChallenge = null;
+        } else if (state.pendingAction) {
+            // Regular influence loss (from coup, assassinate, etc)
+            state.pendingAction = null;
+            endTurn(state);
+        } else {
+            // Some other cause of influence loss
+            endTurn(state);
         }
     }
 }

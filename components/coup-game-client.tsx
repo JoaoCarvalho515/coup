@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Users, Copy, CheckCheck, ArrowLeft } from "lucide-react";
+import { GamePlay } from "@/components/game/game-play";
 
 interface CoupGameClientProps {
     roomCode: string;
@@ -14,6 +15,8 @@ interface CoupGameClientProps {
 
 export function CoupGameClient({ roomCode }: CoupGameClientProps) {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const action = searchParams.get("action");
     const [playerName, setPlayerName] = useState("");
     const [hasJoined, setHasJoined] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -31,8 +34,15 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
         startGame,
         kickPlayer,
         performAction,
+        blockAction,
+        passBlock,
+        challengeAction,
+        passChallenge,
+        exchangeCards,
+        loseInfluence,
     } = usePartyCoup({
         roomCode,
+        action: action || undefined,
         onKicked: () => router.push('/join'),
     });
 
@@ -60,6 +70,17 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
 
     // Show connection status
     if (!isConnected) {
+        if (error) {
+            return (
+                <div className="flex min-h-screen items-center justify-center p-4">
+                    <div className="text-center space-y-4">
+                        <h1 className="text-2xl font-bold text-destructive">Connection Error</h1>
+                        <p className="text-lg">{error}</p>
+                        <Button onClick={() => router.push('/join')}>Go Back</Button>
+                    </div>
+                </div>
+            );
+        }
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="text-center">
@@ -71,7 +92,7 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
     // Show join screen if player hasn't joined yet
     if (!hasJoined) {
         return (
-            <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-b from-background to-muted/20">
+            <div className="flex min-h-screen items-center justify-center p-4 bg-linear-to-b from-background to-muted/20">
                 <div className="w-full max-w-md space-y-4">
                     <Button
                         variant="ghost"
@@ -137,7 +158,7 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
     // Show lobby if game hasn't started
     if (!gameState) {
         return (
-            <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-b from-background to-muted/20">
+            <div className="flex min-h-screen items-center justify-center p-4 bg-linear-to-b from-background to-muted/20">
                 <Card className="w-full max-w-2xl">
                     <CardHeader className="text-center space-y-4 pb-4">
                         <div className="flex items-center justify-center gap-2">
@@ -297,87 +318,17 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
 
     // Show game UI
     return (
-        <div className="min-h-screen p-6">
-            <div className="max-w-7xl mx-auto space-y-6">
-                {/* Header */}
-                <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-bold">Coup Game</h1>
-                        <p className="text-muted-foreground">Room: {roomCode.toUpperCase()}</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Phase</p>
-                        <p className="text-xl font-semibold capitalize">{gameState.phase}</p>
-                    </div>
-                </div>
-
-                {/* Current Player */}
-                <div className="p-4 bg-secondary rounded-lg">
-                    <p className="text-sm text-muted-foreground">Current Turn</p>
-                    <p className="text-2xl font-bold">
-                        {gameState.players[gameState.currentPlayerIndex].name}
-                    </p>
-                </div>
-
-                {/* Players Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {gameState.players.map((player) => (
-                        <div
-                            key={player.id}
-                            className={`p-4 rounded-lg border-2 ${player.isAlive
-                                ? "border-primary bg-card"
-                                : "border-muted bg-muted opacity-50"
-                                }`}
-                        >
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="text-xl font-bold">{player.name}</h3>
-                                <span className="text-2xl font-bold text-primary">{player.coins}💰</span>
-                            </div>
-                            <div className="flex gap-2 mt-3">
-                                {player.cards.map((card) => (
-                                    <div
-                                        key={card.id}
-                                        className={`px-3 py-2 rounded ${card.revealed
-                                            ? "bg-destructive/20 text-destructive"
-                                            : "bg-primary/20 text-primary"
-                                            }`}
-                                    >
-                                        {card.revealed ? card.character : "?"}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Game Log */}
-                <div className="p-4 bg-secondary rounded-lg max-h-48 overflow-y-auto">
-                    <h3 className="text-lg font-semibold mb-2">Game Log</h3>
-                    <div className="space-y-1">
-                        {gameState.log.slice(-10).reverse().map((entry, index) => (
-                            <p key={index} className="text-sm text-muted-foreground">
-                                {entry.message}
-                            </p>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Winner */}
-                {gameState.winner && (
-                    <div className="p-6 bg-primary text-primary-foreground rounded-lg text-center">
-                        <h2 className="text-3xl font-bold">🎉 Winner! 🎉</h2>
-                        <p className="text-2xl mt-2">
-                            {gameState.players.find((p) => p.id === gameState.winner)?.name}
-                        </p>
-                    </div>
-                )}
-
-                {error && (
-                    <div className="p-3 bg-destructive/10 text-destructive rounded-md">
-                        {error}
-                    </div>
-                )}
-            </div>
-        </div>
+        <GamePlay
+            gameState={gameState}
+            playerName={playerName}
+            onAction={performAction}
+            onBlock={blockAction}
+            onPassBlock={passBlock}
+            onChallenge={challengeAction}
+            onPassChallenge={passChallenge}
+            onExchangeCards={exchangeCards}
+            onLoseInfluence={loseInfluence}
+            error={error}
+        />
     );
 }
