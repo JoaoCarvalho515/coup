@@ -67,6 +67,7 @@ export interface GameState {
     pendingChallenge: ChallengeRequest | null;
     pendingExchangeCards: Card[] | null;
     pendingInfluenceLoss: string | null; // Player ID who needs to choose a card to reveal
+    passedPlayers: string[];
     winner: string | null;
     log: GameLogEntry[];
 }
@@ -199,6 +200,7 @@ export function initializeGame(playersList: { id: string; name: string }[]): Gam
         pendingChallenge: null,
         pendingExchangeCards: null,
         pendingInfluenceLoss: null,
+        passedPlayers: [],
         winner: null,
         log: [{
             timestamp: Date.now(),
@@ -391,6 +393,7 @@ export function performAction(state: GameState, action: ActionRequest): GameStat
     }
 
     newState.pendingAction = action;
+    newState.passedPlayers = [];
 
     // Actions that can be challenged or blocked go to appropriate window
     if (requirements.character) {
@@ -487,19 +490,45 @@ export function blockAction(state: GameState, block: BlockRequest): GameState {
 
     newState.pendingBlock = block;
     newState.phase = 'challenge_window';
+    newState.passedPlayers = [];
 
     addLog(newState, `${blocker.name} claims ${block.claimedCharacter} to block`, block.blockerId);
 
     return newState;
 }
 
-export function passBlock(state: GameState): GameState {
+export function passBlock(state: GameState, playerId: string): GameState {
     const newState = { ...state };
 
-    if (newState.phase === 'block_window') {
-        // No one blocked, proceed to resolve action
-        newState.phase = 'resolving';
-        resolveAction(newState);
+    if (newState.phase === 'block_window' && newState.pendingAction) {
+        // Add player to passed list if not already there
+        if (!newState.passedPlayers.includes(playerId)) {
+            newState.passedPlayers.push(playerId);
+        }
+
+        // Check if all eligible blockers have passed
+        let allPassed = false;
+        const actionType = newState.pendingAction.type;
+        const alivePlayers = getAlivePlayers(newState);
+
+        if (actionType === 'foreign_aid') {
+            // Everyone except actor must pass
+            const eligibleBlockers = alivePlayers.filter(p => p.id !== newState.pendingAction!.actorId);
+            allPassed = eligibleBlockers.every(p => newState.passedPlayers.includes(p.id));
+        } else {
+            // Targeted actions (assassinate, steal) - only target must pass
+            const targetId = newState.pendingAction.targetId;
+            if (targetId && newState.passedPlayers.includes(targetId)) {
+                allPassed = true;
+            }
+        }
+
+        if (allPassed) {
+            // No one blocked, proceed to resolve action
+            newState.phase = 'resolving';
+            newState.passedPlayers = [];
+            resolveAction(newState);
+        }
     }
 
     return newState;
@@ -570,29 +599,53 @@ export function challengeAction(
     return newState;
 }
 
-export function passChallenge(state: GameState): GameState {
+export function passChallenge(state: GameState, playerId: string): GameState {
     const newState = { ...state };
 
     if (newState.phase === 'challenge_window') {
-        // No one challenged
-        if (newState.pendingBlock) {
-            // Block succeeds, action is cancelled
-            const blocker = getPlayer(newState, newState.pendingBlock.blockerId)!;
-            addLog(newState, `${blocker.name}'s block succeeds`, newState.pendingBlock.blockerId);
-            newState.pendingBlock = null;
-            newState.pendingAction = null;
-            endTurn(newState);
-        } else {
-            // Action unchallenged
-            // Check if it can be blocked
-            const action = newState.pendingAction!;
-            const requirements = ACTION_REQUIREMENTS[action.type];
+        // Add player to passed list
+        if (!newState.passedPlayers.includes(playerId)) {
+            newState.passedPlayers.push(playerId);
+        }
 
-            if (requirements.canBeBlocked) {
-                newState.phase = 'block_window';
+        // Check if all eligible challengers have passed
+        // Everyone except the person being challenged (actor or blocker)
+        const alivePlayers = getAlivePlayers(newState);
+        let subjectId: string;
+
+        if (newState.pendingBlock) {
+            subjectId = newState.pendingBlock.blockerId;
+        } else if (newState.pendingAction) {
+            subjectId = newState.pendingAction.actorId;
+        } else {
+            return newState; // Should not happen
+        }
+
+        const eligibleChallengers = alivePlayers.filter(p => p.id !== subjectId);
+        const allPassed = eligibleChallengers.every(p => newState.passedPlayers.includes(p.id));
+
+        if (allPassed) {
+            // No one challenged
+            newState.passedPlayers = [];
+            if (newState.pendingBlock) {
+                // Block succeeds, action is cancelled
+                const blocker = getPlayer(newState, newState.pendingBlock.blockerId)!;
+                addLog(newState, `${blocker.name}'s block succeeds`, newState.pendingBlock.blockerId);
+                newState.pendingBlock = null;
+                newState.pendingAction = null;
+                endTurn(newState);
             } else {
-                // Action succeeds
-                resolveAction(newState);
+                // Action unchallenged
+                // Check if it can be blocked
+                const action = newState.pendingAction!;
+                const requirements = ACTION_REQUIREMENTS[action.type];
+
+                if (requirements.canBeBlocked) {
+                    newState.phase = 'block_window';
+                } else {
+                    // Action succeeds
+                    resolveAction(newState);
+                }
             }
         }
     }
@@ -741,6 +794,7 @@ export function endTurn(state: GameState): void {
     state.pendingAction = null;
     state.pendingBlock = null;
     state.pendingChallenge = null;
+    state.passedPlayers = [];
 
     // Check if deck needs reshuffling
     if (state.courtDeck.length === 0 && state.discardPile.length > 0) {

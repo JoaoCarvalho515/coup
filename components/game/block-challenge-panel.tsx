@@ -33,6 +33,9 @@ export function BlockChallengePanel({
 
     if (!myPlayer || !myPlayer.isAlive) return null;
 
+    // Check if I have already passed
+    const hasPassed = gameState.passedPlayers?.includes(myPlayerId);
+
     // Block Window
     if (gameState.phase === 'block_window' && gameState.pendingAction) {
         const actor = gameState.players.find(p => p.id === gameState.pendingAction?.actorId);
@@ -43,7 +46,7 @@ export function BlockChallengePanel({
         const canBlock = (gameState.pendingAction.type === 'foreign_aid' && gameState.pendingAction.actorId !== myPlayerId) ||
             (target && target.id === myPlayerId);
 
-        if (!canBlock) {
+        if (!canBlock || hasPassed) {
             return (
                 <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
                     <CardContent className="p-6 text-center">
@@ -158,9 +161,9 @@ export function BlockChallengePanel({
         // Don't show panel if:
         // - No one to challenge (no character was claimed)
         // - I am the one being challenged (can't challenge myself)
-        if (!targetPlayerId || !claimedCharacter || targetPlayerId === myPlayerId) {
+        if (!targetPlayerId || !claimedCharacter || targetPlayerId === myPlayerId || hasPassed) {
             // Only show waiting message if there IS someone to challenge (just not me)
-            if (targetPlayerId && claimedCharacter && targetPlayerId === myPlayerId) {
+            if ((targetPlayerId && claimedCharacter && targetPlayerId === myPlayerId) || hasPassed) {
                 return (
                     <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
                         <CardContent className="p-6 text-center">

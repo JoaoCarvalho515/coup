@@ -266,7 +266,10 @@ export default class CoupServer implements Party.Server {
         case "pass-block": {
           if (!this.gameState) return;
 
-          this.gameState = passBlock(this.gameState);
+          // Use persistent playerId directly
+          if (!playerId) return;
+
+          this.gameState = passBlock(this.gameState, playerId);
           await this.saveState();
 
           this.party.broadcast(JSON.stringify({
@@ -292,7 +295,10 @@ export default class CoupServer implements Party.Server {
         case "pass-challenge": {
           if (!this.gameState) return;
 
-          this.gameState = passChallenge(this.gameState);
+          // Use persistent playerId directly
+          if (!playerId) return;
+
+          this.gameState = passChallenge(this.gameState, playerId);
           await this.saveState();
 
           this.party.broadcast(JSON.stringify({
