@@ -1,13 +1,65 @@
 "use client";
 
 import { useState } from "react";
-import { Card as CardUI, CardContent } from "@/components/ui/card";
+import { Card as CardUI, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { GameState, ActionType, CharacterType } from "@/lib/game-logic";
-import { Coins, Crown, Skull, Shield, Users, BookOpen } from "lucide-react";
+import { GameState, ActionType, CharacterType, Player } from "@/lib/game-logic";
+import { Coins, Crown, Skull, Shield, Users, BookOpen, X } from "lucide-react";
 import Image from "next/image";
 import { RulesModal } from "./rules-modal";
-import { TargetSelectionModal } from "./target-selection-modal";
+
+interface TargetSelectionModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSelect: (targetId: string) => void;
+    actionType: string;
+    players: Player[];
+}
+
+function TargetSelectionModal({
+    isOpen,
+    onClose,
+    onSelect,
+    actionType,
+    players,
+}: TargetSelectionModalProps) {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <CardUI className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-purple-500 max-w-md w-full relative animate-in zoom-in-95 duration-200">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                    onClick={onClose}
+                >
+                    <X className="size-4" />
+                </Button>
+                <CardHeader>
+                    <CardTitle className="text-2xl text-purple-300 flex items-center gap-2 capitalize">
+                        <Users className="size-6" />
+                        Select Target for {actionType.replace('_', ' ')}
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 gap-3">
+                        {players.map((player) => (
+                            <Button
+                                key={player.id}
+                                onClick={() => onSelect(player.id)}
+                                className="h-14 text-lg justify-between px-6 bg-slate-700 hover:bg-slate-600 border border-slate-600"
+                            >
+                                <span>{player.name}</span>
+                                <span className="text-sm text-slate-400 font-normal">{player.cards.filter(c => !c.revealed).length} influence</span>
+                            </Button>
+                        ))}
+                    </div>
+                </CardContent>
+            </CardUI>
+        </div>
+    );
+}
 
 interface GameBoardProps {
     gameState: GameState;
