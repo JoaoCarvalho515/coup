@@ -92,59 +92,59 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
     // Show join screen if player hasn't joined yet
     if (!hasJoined) {
         return (
-            <div className="flex min-h-screen items-center justify-center p-4 bg-linear-to-b from-background to-muted/20">
-                <div className="w-full max-w-md space-y-4">
+            <div className="flex min-h-screen items-center justify-center p-4 bg-slate-950 text-slate-50">
+                <div className="w-full max-w-xl space-y-6">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => router.push("/join")}
-                        className="gap-2"
+                        className="gap-2 text-slate-400 hover:text-white hover:bg-slate-800"
                     >
                         <ArrowLeft className="size-4" />
                         Join Different Game
                     </Button>
 
-                    <Card className="w-full">
-                        <CardHeader className="text-center space-y-4">
-                            <CardTitle className="text-3xl">Join Game</CardTitle>
-                            <div className="flex items-center justify-center gap-2">
-                                <p className="text-5xl font-bold font-mono tracking-wider text-primary">
+                    <Card className="w-full bg-slate-900/50 border-slate-800 shadow-2xl backdrop-blur-sm p-6">
+                        <CardHeader className="text-center space-y-6 pb-6">
+                            <CardTitle className="text-4xl font-bold text-amber-500">Join Game</CardTitle>
+                            <div className="flex items-center justify-center gap-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                                <p className="text-6xl font-black font-mono tracking-widest text-amber-100 drop-shadow-md">
                                     {roomCode.toUpperCase()}
                                 </p>
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleCopyCode}
-                                    className="text-muted-foreground hover:text-foreground"
+                                    className="text-slate-400 hover:text-amber-400 hover:bg-slate-800"
                                 >
-                                    {copied ? <CheckCheck className="size-5" /> : <Copy className="size-5" />}
+                                    {copied ? <CheckCheck className="size-6" /> : <Copy className="size-6" />}
                                 </Button>
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-slate-400">
                                 Share this code with your friends
                             </p>
                         </CardHeader>
 
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-6">
                             <div className="space-y-2">
                                 <Input
                                     placeholder="Enter your name"
                                     value={playerName}
                                     onChange={(e) => setPlayerName(e.target.value)}
                                     onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-                                    className="text-center text-lg h-12"
+                                    className="text-center text-xl h-14 bg-slate-950/50 border-slate-700 focus-visible:ring-amber-500/50 text-amber-100 placeholder:text-slate-700"
                                 />
                             </div>
                             <Button
                                 onClick={handleJoin}
-                                className="w-full h-12 text-base"
+                                className="w-full h-14 text-lg font-bold bg-amber-600 hover:bg-amber-500 text-white transition-all"
                                 disabled={!playerName.trim()}
                             >
                                 Join Game
                             </Button>
 
                             {error && (
-                                <div className="p-3 bg-destructive/10 text-destructive rounded-md text-center text-sm">
+                                <div className="p-4 bg-red-900/20 border border-red-900/50 text-red-400 rounded-lg text-center text-sm font-medium">
                                     {error}
                                 </div>
                             )}
@@ -158,160 +158,175 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
     // Show lobby if game hasn't started
     if (!gameState) {
         return (
-            <div className="flex min-h-screen items-center justify-center p-4 bg-linear-to-b from-background to-muted/20">
-                <Card className="w-full max-w-2xl">
-                    <CardHeader className="text-center space-y-4 pb-4">
-                        <div className="flex items-center justify-center gap-2">
-                            <h1 className="text-6xl font-bold font-mono tracking-widest">
-                                {roomCode.toUpperCase()}
-                            </h1>
-                            <Button
-                                variant="ghost"
-                                size="icon-lg"
-                                onClick={handleCopyCode}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                {copied ? <CheckCheck className="size-6" /> : <Copy className="size-6" />}
-                            </Button>
-                        </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-6">
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Users className="size-5" />
-                                    <h2 className="text-lg font-semibold">Players</h2>
+            <div className="flex min-h-screen items-center justify-center p-4 bg-slate-950 text-slate-50">
+                <div className="w-full max-w-3xl space-y-4">
+                    <Button
+                        variant="ghost"
+                        onClick={() => router.push("/")}
+                        className="gap-2 text-slate-400 hover:text-white hover:bg-slate-800 self-start"
+                    >
+                        <ArrowLeft className="size-4" />
+                        Back to Menu
+                    </Button>
+                    <Card className="w-full bg-slate-900/50 border-slate-800 shadow-2xl backdrop-blur-sm">
+                        <CardHeader className="text-center space-y-6 pb-8 border-b border-slate-800">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="flex items-center justify-center gap-4 bg-slate-950/50 px-8 py-4 rounded-2xl border border-slate-800 shadow-inner">
+                                    <h1 className="text-7xl font-black font-mono tracking-widest text-amber-100 drop-shadow-lg">
+                                        {roomCode.toUpperCase()}
+                                    </h1>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={handleCopyCode}
+                                        className="text-slate-400 hover:text-amber-400 hover:bg-slate-800 h-12 w-12"
+                                    >
+                                        {copied ? <CheckCheck className="size-8" /> : <Copy className="size-8" />}
+                                    </Button>
                                 </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                        setIsEditingName(true);
-                                        setNewName(playerName);
-                                    }}
-                                    className="text-xs"
-                                >
-                                    Change Name
-                                </Button>
+                                <p className="text-slate-400 font-medium uppercase tracking-wide text-sm">Lobby Access Code</p>
+                            </div>
+                        </CardHeader>
+
+                        <CardContent className="space-y-8 pt-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center gap-3 text-amber-500">
+                                        <Users className="size-6" />
+                                        <h2 className="text-xl font-bold uppercase tracking-wide">Players</h2>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setIsEditingName(true);
+                                            setNewName(playerName);
+                                        }}
+                                        className="border-slate-700 bg-slate-900/50 text-slate-300 hover:bg-slate-800 hover:text-white"
+                                    >
+                                        Change Name
+                                    </Button>
+                                </div>
+
+                                {isEditingName && (
+                                    <div className="space-y-3 p-4 bg-slate-950/50 rounded-xl border border-slate-800 animate-in fade-in slide-in-from-top-2">
+                                        <Input
+                                            placeholder="Enter new name"
+                                            value={newName}
+                                            onChange={(e) => setNewName(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") handleChangeName();
+                                                if (e.key === "Escape") {
+                                                    setIsEditingName(false);
+                                                    setNewName("");
+                                                }
+                                            }}
+                                            className="h-10 bg-slate-900 border-slate-700 text-white"
+                                            autoFocus
+                                        />
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={handleChangeName}
+                                                size="sm"
+                                                className="flex-1 bg-amber-600 hover:bg-amber-500 text-white"
+                                                disabled={!newName.trim()}
+                                            >
+                                                Update
+                                            </Button>
+                                            <Button
+                                                onClick={() => {
+                                                    setIsEditingName(false);
+                                                    setNewName("");
+                                                }}
+                                                variant="outline"
+                                                size="sm"
+                                                className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="space-y-3 min-h-[240px]">
+                                    {players.map((player, index) => (
+                                        <div
+                                            key={player.id}
+                                            className="flex items-center justify-between gap-4 p-4 bg-slate-800/40 hover:bg-slate-800/60 border border-slate-700/50 rounded-xl transition-all group"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-900 text-amber-500 font-bold border border-slate-700 shadow-sm">
+                                                    {index + 1}
+                                                </div>
+                                                <div>
+                                                    <span className="text-xl font-bold text-slate-200">{player.name}</span>
+                                                    {player.id === hostId && (
+                                                        <span className="ml-3 text-xs font-bold bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full border border-amber-500/30 uppercase tracking-wider">
+                                                            Host
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {isHost && player.id !== hostId && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => kickPlayer(player.id)}
+                                                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 opacity-100 transition-opacity"
+                                                >
+                                                    Kick
+                                                </Button>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                    {players.length === 0 && (
+                                        <div className="flex flex-col items-center justify-center h-[240px] text-slate-500 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/20">
+                                            <Users className="size-12 mb-4 opacity-20" />
+                                            <p className="text-lg font-medium">Waiting for players to join...</p>
+                                        </div>
+                                    )}
+
+                                    {players.length > 0 && players.length < 6 && (
+                                        <div className="flex items-center gap-4 p-4 border-2 border-dashed border-slate-800 rounded-xl bg-slate-900/20 opacity-60">
+                                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-800 text-slate-600 font-bold">
+                                                {players.length + 1}
+                                            </div>
+                                            <span className="text-slate-500 font-medium italic">Waiting for player...</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            {isEditingName && (
-                                <div className="space-y-2 p-3 bg-muted/50 rounded-lg border">
-                                    <Input
-                                        placeholder="Enter new name"
-                                        value={newName}
-                                        onChange={(e) => setNewName(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") handleChangeName();
-                                            if (e.key === "Escape") {
-                                                setIsEditingName(false);
-                                                setNewName("");
-                                            }
-                                        }}
-                                        className="h-9"
-                                        autoFocus
-                                    />
-                                    <div className="flex gap-2">
-                                        <Button
-                                            onClick={handleChangeName}
-                                            size="sm"
-                                            className="flex-1"
-                                            disabled={!newName.trim()}
-                                        >
-                                            Update
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                setIsEditingName(false);
-                                                setNewName("");
-                                            }}
-                                            variant="outline"
-                                            size="sm"
-                                        >
-                                            Cancel
-                                        </Button>
-                                    </div>
+                            <div className="space-y-4 pt-6 border-t border-slate-800">
+                                <Button
+                                    onClick={startGame}
+                                    className={`w-full h-16 text-xl font-bold uppercase tracking-wider transition-all ${players.length < 2 || !isHost
+                                        ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                                        : "bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white shadow-lg hover:scale-[1.02]"
+                                        }`}
+                                    disabled={players.length < 2 || !isHost}
+                                    size="lg"
+                                >
+                                    {players.length < 2 ? "Waiting for Players..." : isHost ? "Start Game" : "Waiting for Host..."}
+                                </Button>
+                                <p className="text-sm text-center text-slate-500 font-medium">
+                                    {players.length < 2
+                                        ? "Need at least 2 players to start"
+                                        : !isHost
+                                            ? "Only the host can start the game"
+                                            : `${players.length} player${players.length !== 1 ? 's' : ''} ready • 2-6 players`
+                                    }
+                                </p>
+                            </div>
+
+                            {error && (
+                                <div className="p-4 bg-red-900/20 border border-red-900/50 text-red-400 rounded-lg text-center text-sm font-medium animate-in fade-in slide-in-from-bottom-2">
+                                    {error}
                                 </div>
                             )}
-
-                            <div className="space-y-2 min-h-[200px]">
-                                {players.map((player, index) => (
-                                    <div
-                                        key={player.id}
-                                        className="flex items-center justify-between gap-3 p-4 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold">
-                                                {index + 1}
-                                            </div>
-                                            <div>
-                                                <span className="text-lg font-medium">{player.name}</span>
-                                                {player.id === hostId && (
-                                                    <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-1 rounded">
-                                                        Host
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {isHost && player.id !== hostId && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => kickPlayer(player.id)}
-                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            >
-                                                Kick
-                                            </Button>
-                                        )}
-                                    </div>
-                                ))}
-
-                                {players.length === 0 && (
-                                    <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-                                        <p className="text-center">
-                                            Waiting for players to join...
-                                        </p>
-                                    </div>
-                                )}
-
-                                {players.length > 0 && players.length < 5 && (
-                                    <div className="flex items-center gap-3 p-4 border-2 border-dashed border-muted-foreground/20 rounded-lg">
-                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted text-muted-foreground font-bold">
-                                            {players.length + 1}
-                                        </div>
-                                        <span className="text-muted-foreground">Waiting for player...</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="space-y-3 pt-4 border-t">
-                            <Button
-                                onClick={startGame}
-                                className="w-full h-12 text-base font-semibold"
-                                disabled={players.length < 2 || !isHost}
-                                size="lg"
-                            >
-                                {players.length < 2 ? "Waiting for Players..." : isHost ? "Start" : "Waiting for Host..."}
-                            </Button>
-                            <p className="text-xs text-center text-muted-foreground">
-                                {players.length < 2
-                                    ? "Need at least 2 players to start"
-                                    : !isHost
-                                        ? "Only the host can start the game"
-                                        : `${players.length} player${players.length !== 1 ? 's' : ''} ready • 2-6 players`
-                                }
-                            </p>
-                        </div>
-
-                        {error && (
-                            <div className="p-3 bg-destructive/10 text-destructive rounded-md text-center text-sm">
-                                {error}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         );
     }
