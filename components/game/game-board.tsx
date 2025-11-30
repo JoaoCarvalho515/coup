@@ -7,6 +7,7 @@ import { GameState, ActionType, CharacterType } from "@/lib/game-logic";
 import { Coins, Crown, Skull, Shield, Users, BookOpen } from "lucide-react";
 import Image from "next/image";
 import { RulesModal } from "./rules-modal";
+import { TargetSelectionModal } from "./target-selection-modal";
 
 interface GameBoardProps {
     gameState: GameState;
@@ -60,6 +61,7 @@ const formatLogMessage = (message: string, players: { name: string }[]) => {
 
 export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
     const [showRules, setShowRules] = useState(false);
+    const [selectedTargetAction, setSelectedTargetAction] = useState<ActionType | null>(null);
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     const myPlayer = gameState.players.find(p => p.id === myPlayerId);
     const isMyTurn = currentPlayer.id === myPlayerId;
@@ -67,9 +69,23 @@ export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
 
     if (!myPlayer) return null;
 
+    const handleTargetSelection = (targetId: string) => {
+        if (selectedTargetAction) {
+            onAction(selectedTargetAction, targetId);
+            setSelectedTargetAction(null);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-6">
             <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
+            <TargetSelectionModal
+                isOpen={!!selectedTargetAction}
+                onClose={() => setSelectedTargetAction(null)}
+                onSelect={handleTargetSelection}
+                actionType={selectedTargetAction || ''}
+                players={alivePlayers.filter(p => p.id !== myPlayerId)}
+            />
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex justify-between items-center bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700">
@@ -163,83 +179,45 @@ export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
                                 <div className="mt-6 space-y-4">
                                     <h3 className="text-lg font-semibold text-purple-300 border-b border-purple-500/30 pb-2">Targeted Actions</h3>
 
-                                    {/* Steal */}
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2 text-sm text-slate-400">
-                                            <span className="font-bold text-cyan-400">Steal (Captain)</span>
-                                            <span>- Take 2 coins</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                                            {alivePlayers
-                                                .filter(p => p.id !== myPlayerId)
-                                                .map(player => (
-                                                    <Button
-                                                        key={player.id}
-                                                        onClick={() => onAction('steal', player.id)}
-                                                        variant="outline"
-                                                        className="bg-cyan-900/30 border-cyan-500 hover:bg-cyan-800 hover:text-white transition-colors"
-                                                        disabled={myPlayer.coins >= 10}
-                                                    >
-                                                        {player.name}
-                                                    </Button>
-                                                ))}
-                                        </div>
-                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        {/* Steal */}
+                                        <Button
+                                            onClick={() => setSelectedTargetAction('steal')}
+                                            className="h-auto py-4 flex flex-col items-start bg-cyan-900/30 border border-cyan-500 hover:bg-cyan-800 hover:text-white transition-colors"
+                                            disabled={myPlayer.coins >= 10}
+                                        >
+                                            <span className="text-lg font-bold text-cyan-400">Steal (Captain)</span>
+                                            <span className="text-xs opacity-80 text-left">Take 2 coins from opponent</span>
+                                        </Button>
 
-                                    {/* Assassinate */}
-                                    {myPlayer.coins >= 3 && (
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-sm text-slate-400">
-                                                <span className="font-bold text-red-400">Assassinate (Assassin)</span>
-                                                <span>- 3 coins, kill influence</span>
-                                            </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                                                {alivePlayers
-                                                    .filter(p => p.id !== myPlayerId)
-                                                    .map(player => (
-                                                        <Button
-                                                            key={player.id}
-                                                            onClick={() => onAction('assassinate', player.id)}
-                                                            variant="outline"
-                                                            className="bg-red-900/30 border-red-500 hover:bg-red-800 hover:text-white transition-colors"
-                                                            disabled={myPlayer.coins >= 10}
-                                                        >
-                                                            {player.name}
-                                                        </Button>
-                                                    ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                        {/* Assassinate */}
+                                        <Button
+                                            onClick={() => setSelectedTargetAction('assassinate')}
+                                            className="h-auto py-4 flex flex-col items-start bg-red-900/30 border border-red-500 hover:bg-red-800 hover:text-white transition-colors"
+                                            disabled={myPlayer.coins >= 10 || myPlayer.coins < 3}
+                                        >
+                                            <span className="text-lg font-bold text-red-400">Assassinate (Assassin)</span>
+                                            <span className="text-xs opacity-80 text-left">Pay 3 coins to kill influence</span>
+                                        </Button>
 
-                                    {/* Coup */}
-                                    {myPlayer.coins >= 7 && (
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-sm text-slate-400">
-                                                <span className="font-bold text-orange-400">Coup</span>
-                                                <span>- 7 coins, kill influence (unchallengeable)</span>
+                                        {/* Coup */}
+                                        <Button
+                                            onClick={() => setSelectedTargetAction('coup')}
+                                            className={`h-auto py-4 flex flex-col items-start border border-orange-500 transition-colors ${myPlayer.coins >= 10
+                                                ? "bg-orange-600 hover:bg-orange-700 text-white animate-pulse"
+                                                : "bg-orange-900/30 hover:bg-orange-800 hover:text-white"
+                                                }`}
+                                            disabled={myPlayer.coins < 7}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-lg font-bold text-orange-400">Coup</span>
                                                 {myPlayer.coins >= 10 && (
-                                                    <span className="text-yellow-400 font-bold ml-2 animate-pulse">REQUIRED!</span>
+                                                    <span className="text-xs bg-yellow-500 text-black px-1 rounded font-bold">REQUIRED</span>
                                                 )}
                                             </div>
-                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
-                                                {alivePlayers
-                                                    .filter(p => p.id !== myPlayerId)
-                                                    .map(player => (
-                                                        <Button
-                                                            key={player.id}
-                                                            onClick={() => onAction('coup', player.id)}
-                                                            variant="outline"
-                                                            className={`border-orange-500 transition-colors ${myPlayer.coins >= 10
-                                                                ? "bg-orange-600 hover:bg-orange-700 text-white animate-pulse"
-                                                                : "bg-orange-900/30 hover:bg-orange-800 hover:text-white"
-                                                                }`}
-                                                        >
-                                                            {player.name}
-                                                        </Button>
-                                                    ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                            <span className="text-xs opacity-80 text-left">Pay 7 coins to kill influence (Unblockable)</span>
+                                        </Button>
+                                    </div>
                                 </div>
                             )}
                         </div>
