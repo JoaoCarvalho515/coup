@@ -1,5 +1,5 @@
 import type * as Party from "partykit/server";
-import { GameState, initializeGame, performAction, blockAction, passBlock, challengeAction, passChallenge, exchangeCards, loseInfluence, endTurn, ActionRequest, BlockRequest, ChallengeRequest } from "../lib/game-logic";
+import { GameState, initializeGame, performAction, blockAction, passBlock, challengeAction, passChallenge, exchangeCards, loseInfluence, ActionRequest, BlockRequest, ChallengeRequest } from "../lib/game-logic";
 
 type MessageType =
   | { type: "join"; payload: { playerName: string } }
@@ -25,6 +25,8 @@ export default class CoupServer implements Party.Server {
   gameState: GameState | null = null;
   players: Map<string, PlayerConnection> = new Map();
   hostId: string | null = null;
+  created: boolean = false;
+  connectionToPlayerId: Map<string, string> = new Map();
 
   constructor(readonly party: Party.Party) { }
 
@@ -43,11 +45,13 @@ export default class CoupServer implements Party.Server {
     const savedHostId = await this.party.storage.get<string>("hostId");
     if (savedHostId) {
       this.hostId = savedHostId;
+      this.created = true;
     }
 
-    // Mark this room as active
-    await this.party.storage.put("createdAt", Date.now());
-    await this.party.storage.put("isActive", true);
+    const isCreated = await this.party.storage.get<boolean>("created");
+    if (isCreated) {
+      this.created = true;
+    }
   }
 
   async saveState() {
@@ -58,39 +62,86 @@ export default class CoupServer implements Party.Server {
     if (this.hostId) {
       await this.party.storage.put("hostId", this.hostId);
     }
+    if (this.created) {
+      await this.party.storage.put("created", true);
+    }
   }
 
-  onConnect(conn: Party.Connection) {
-    console.log(`Player connected: ${conn.id} to room ${this.party.id}`);
+  onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
+    const url = new URL(ctx.request.url);
+    const action = url.searchParams.get("action");
+    const playerId = url.searchParams.get("playerId") ?? conn.id;
 
-    // Send current game state to the newly connected player
-    if (this.gameState) {
-      conn.send(JSON.stringify({ type: "state", payload: this.gameState }));
-    } else {
-      conn.send(JSON.stringify({
-        type: "waiting",
-        payload: {
-          players: Array.from(this.players.values()),
-          hostId: this.hostId
-        }
-      }));
+    this.connectionToPlayerId.set(conn.id, playerId);
+
+    if (action === "create") {
+      this.created = true;
+      this.party.storage.put("created", true).catch(console.error);
     }
+
+    // If room doesn't exist (not created) and not creating, reject
+    if (!this.created && action !== "create") {
+      conn.send(JSON.stringify({
+        type: "error",
+        payload: { message: "Incorrect Game Code or No Session Found" }
+      }));
+      conn.close();
+      return;
+    }
+
+    // If game has already started, check if player is reconnecting
+    if (this.gameState) {
+      const isReconnecting = this.gameState.players.some(p => p.id === playerId);
+
+      if (!isReconnecting) {
+        conn.send(JSON.stringify({
+          type: "error",
+          payload: { message: "The Game Already Started" }
+        }));
+        conn.close();
+        return;
+      }
+
+      // Send current game state to reconnecting player
+      conn.send(JSON.stringify({ type: "state", payload: this.gameState }));
+      return;
+    }
+
+    console.log(`Player connected: ${conn.id} (PlayerID: ${playerId}) to room ${this.party.id}`);
+
+    conn.send(JSON.stringify({
+      type: "waiting",
+      payload: {
+        players: Array.from(this.players.values()),
+        hostId: this.hostId
+      }
+    }));
   }
 
   async onMessage(message: string, sender: Party.Connection) {
     try {
       const msg = JSON.parse(message) as MessageType;
+      const playerId = this.connectionToPlayerId.get(sender.id) ?? sender.id;
 
       switch (msg.type) {
         case "join": {
+          // Check if game already started
+          if (this.gameState) {
+            sender.send(JSON.stringify({
+              type: "error",
+              payload: { message: "The Game Already Started" }
+            }));
+            return;
+          }
+
           // Set first player as host
           if (this.players.size === 0 && !this.hostId) {
-            this.hostId = sender.id;
+            this.hostId = playerId;
           }
 
           // Add player to the lobby
-          this.players.set(sender.id, {
-            id: sender.id,
+          this.players.set(playerId, {
+            id: playerId,
             name: msg.payload.playerName,
           });
           await this.saveState();
@@ -108,7 +159,7 @@ export default class CoupServer implements Party.Server {
 
         case "start-game": {
           // Only host can start the game
-          if (sender.id !== this.hostId) {
+          if (playerId !== this.hostId) {
             sender.send(JSON.stringify({
               type: "error",
               payload: { message: "Only the host can start the game" },
@@ -125,14 +176,8 @@ export default class CoupServer implements Party.Server {
             return;
           }
 
-          const playerNames = Array.from(this.players.values()).map(p => p.name);
-          this.gameState = initializeGame(playerNames);
-
-          // Map connection IDs to player IDs in game state
-          const playerIdMap = new Map<string, string>();
-          Array.from(this.players.keys()).forEach((connId, index) => {
-            playerIdMap.set(connId, this.gameState!.players[index].id);
-          });
+          const playerList = Array.from(this.players.values());
+          this.gameState = initializeGame(playerList);
 
           await this.saveState();
 
@@ -146,7 +191,7 @@ export default class CoupServer implements Party.Server {
 
         case "kick-player": {
           // Only host can kick players
-          if (sender.id !== this.hostId) {
+          if (playerId !== this.hostId) {
             sender.send(JSON.stringify({
               type: "error",
               payload: { message: "Only the host can kick players" },
@@ -164,7 +209,8 @@ export default class CoupServer implements Party.Server {
           }
 
           // Remove player
-          this.players.delete(msg.payload.playerId);
+          const targetPlayerId = msg.payload.playerId;
+          this.players.delete(targetPlayerId);
           await this.saveState();
 
           // Broadcast updated player list
@@ -178,7 +224,8 @@ export default class CoupServer implements Party.Server {
 
           // Send kick message to kicked player
           for (const conn of this.party.getConnections()) {
-            if (conn.id === msg.payload.playerId) {
+            const connPlayerId = this.connectionToPlayerId.get(conn.id);
+            if (connPlayerId === targetPlayerId) {
               conn.send(JSON.stringify({
                 type: "kicked",
                 payload: { message: "You have been kicked from the game" },
@@ -258,7 +305,7 @@ export default class CoupServer implements Party.Server {
         case "exchange": {
           if (!this.gameState) return;
 
-          const playerId = this.getPlayerIdFromConnection(sender.id);
+          // Use persistent playerId directly
           if (!playerId) return;
 
           this.gameState = exchangeCards(this.gameState, playerId, msg.payload.keptCardIds);
@@ -274,7 +321,7 @@ export default class CoupServer implements Party.Server {
         case "lose-influence": {
           if (!this.gameState) return;
 
-          const playerId = this.getPlayerIdFromConnection(sender.id);
+          // Use persistent playerId directly
           if (!playerId) return;
 
           loseInfluence(this.gameState, playerId, msg.payload.cardId);
@@ -313,14 +360,19 @@ export default class CoupServer implements Party.Server {
   }
 
   onClose(conn: Party.Connection) {
-    console.log(`Player disconnected: ${conn.id}`);
+    const playerId = this.connectionToPlayerId.get(conn.id);
+    console.log(`Player disconnected: ${conn.id} (PlayerID: ${playerId})`);
+
+    if (playerId) {
+      this.connectionToPlayerId.delete(conn.id);
+    }
 
     // Remove player from the lobby if game hasn't started
-    if (!this.gameState || this.gameState.phase === "waiting") {
-      this.players.delete(conn.id);
+    if ((!this.gameState || this.gameState.phase === "waiting") && playerId) {
+      this.players.delete(playerId);
 
       // If host left, assign new host (first remaining player)
-      if (conn.id === this.hostId) {
+      if (playerId === this.hostId) {
         const remainingPlayers = Array.from(this.players.keys());
         this.hostId = remainingPlayers.length > 0 ? remainingPlayers[0] : null;
       }
@@ -343,12 +395,9 @@ export default class CoupServer implements Party.Server {
 
   // Helper method to get player ID from connection ID
   private getPlayerIdFromConnection(connId: string): string | null {
-    if (!this.gameState) return null;
-
-    const playerIndex = Array.from(this.players.keys()).indexOf(connId);
-    if (playerIndex === -1) return null;
-
-    return this.gameState.players[playerIndex]?.id || null;
+    // This method is now redundant as we use connectionToPlayerId map
+    // But keeping it for safety if needed, though logic above uses map directly
+    return this.connectionToPlayerId.get(connId) || null;
   }
 }
 

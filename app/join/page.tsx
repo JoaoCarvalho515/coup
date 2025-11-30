@@ -25,7 +25,7 @@ export default function JoinGame() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-b from-background to-muted/20">
+        <div className="flex min-h-screen items-center justify-center p-4 bg-linear-to-b from-background to-muted/20">
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center space-y-2">
                     <CardTitle className="text-3xl">Join Game</CardTitle>
@@ -60,7 +60,7 @@ export default function JoinGame() {
 
                     <div className="pt-4 border-t">
                         <p className="text-xs text-center text-muted-foreground mb-3">
-                            Don't have a code?
+                            Don&apos;t have a code?
                         </p>
                         <Button
                             onClick={() => router.push("/create")}

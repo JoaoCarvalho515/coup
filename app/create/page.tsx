@@ -16,7 +16,7 @@ export default function CreateGame() {
                 }
 
                 const data = await response.json();
-                router.push(`/game/${data.code}`);
+                router.push(`/game/${data.code}?action=create`);
             } catch (err) {
                 console.error('Error generating code:', err);
                 setError('Failed to create game. Please try again.');

@@ -19,6 +19,7 @@ type ServerMessage =
 
 interface UsePartyCoupParams {
     roomCode: string;
+    action?: string;
     onKicked?: () => void;
 }
 
@@ -43,6 +44,7 @@ interface UsePartyCoupReturn {
 
 export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupReturn {
     const roomCode = typeof params === 'string' ? params : params.roomCode;
+    const action = typeof params === 'string' ? undefined : params.action;
     const onKicked = typeof params === 'string' ? undefined : params.onKicked;
 
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -53,11 +55,36 @@ export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupR
     const socketRef = useRef<PartySocket | null>(null);
     const [myId, setMyId] = useState<string | null>(null);
 
+    // Generate or retrieve persistent player ID
+    const [playerId] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            let id = localStorage.getItem("coup_player_id");
+            if (!id) {
+                id = crypto.randomUUID();
+                localStorage.setItem("coup_player_id", id);
+            }
+            return id;
+        }
+        return "";
+    });
+
+    // Use ref to store the latest callback without triggering re-renders
+    const onKickedRef = useRef(onKicked);
     useEffect(() => {
+        onKickedRef.current = onKicked;
+    }, [onKicked]);
+
+    useEffect(() => {
+        if (!playerId) return;
+
         // Create PartySocket connection
         const socket = new PartySocket({
             host: process.env.NEXT_PUBLIC_PARTYKIT_HOST || "localhost:1999",
             room: roomCode,
+            query: {
+                ...(action ? { action } : {}),
+                playerId
+            },
         });
 
         socketRef.current = socket;
@@ -66,7 +93,7 @@ export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupR
             console.log("Connected to PartyKit server");
             setIsConnected(true);
             setError(null);
-            setMyId(socket.id);
+            setMyId(playerId);
         });
 
         socket.addEventListener("message", (event) => {
@@ -91,7 +118,7 @@ export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupR
                     case "kicked":
                         setError(message.payload.message);
                         socket.close();
-                        onKicked?.();
+                        onKickedRef.current?.();
                         break;
 
                     case "game-started":
@@ -124,7 +151,7 @@ export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupR
             socket.close();
             socketRef.current = null;
         };
-    }, [roomCode]);
+    }, [roomCode, playerId, action]);
 
     const sendMessage = useCallback((message: object) => {
         if (socketRef.current && isConnected) {
