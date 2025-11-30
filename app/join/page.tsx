@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft, LogIn } from "lucide-react";
 
 export default function JoinGame() {
     const [code, setCode] = useState("");
@@ -25,49 +26,45 @@ export default function JoinGame() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center p-4 bg-linear-to-b from-background to-muted/20">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center space-y-2">
-                    <CardTitle className="text-3xl">Join Game</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        Enter the 4-letter game code
+        <div className="flex min-h-screen items-center justify-center p-4 bg-slate-950 text-slate-50">
+            <Card className="w-full max-w-xl bg-slate-900/50 border-slate-800 shadow-2xl backdrop-blur-sm p-6">
+                <CardHeader className="text-center space-y-2 pb-6">
+                    <CardTitle className="text-4xl font-bold text-amber-500">Join Game</CardTitle>
+                    <p className="text-slate-400 text-lg">
+                        Enter the 4-letter room code
                     </p>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
                     <div className="space-y-2">
                         <Input
-                            placeholder="ABCD"
+                            placeholder="CODE"
                             value={code}
                             onChange={handleInputChange}
                             onKeyDown={(e) => e.key === "Enter" && handleJoin()}
-                            className="text-center text-3xl font-bold font-mono tracking-widest h-16 uppercase"
+                            className="text-center text-5xl font-black font-mono tracking-[0.5em] h-24 uppercase bg-slate-950/50 border-slate-700 focus-visible:ring-amber-500/50 text-amber-100 placeholder:text-slate-800"
                             maxLength={4}
                             autoFocus
                         />
-                        <p className="text-xs text-center text-muted-foreground">
-                            {code.length}/4 characters
-                        </p>
                     </div>
 
                     <Button
                         onClick={handleJoin}
-                        className="w-full h-12 text-base font-semibold"
+                        className="w-full h-14 text-lg font-bold bg-amber-600 hover:bg-amber-500 text-white transition-all"
                         disabled={code.length !== 4}
                     >
-                        Join Game
+                        <LogIn className="mr-2 h-5 w-5" />
+                        Enter Room
                     </Button>
 
-                    <div className="pt-4 border-t">
-                        <p className="text-xs text-center text-muted-foreground mb-3">
-                            Don&apos;t have a code?
-                        </p>
+                    <div className="pt-6 border-t border-slate-800">
                         <Button
-                            onClick={() => router.push("/create")}
-                            variant="outline"
-                            className="w-full"
+                            onClick={() => router.push("/")}
+                            variant="ghost"
+                            className="w-full text-slate-400 hover:text-white hover:bg-slate-800"
                         >
-                            Create New Game
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to Menu
                         </Button>
                     </div>
                 </CardContent>

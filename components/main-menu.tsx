@@ -2,20 +2,29 @@
 
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { Crown, Users } from "lucide-react"
 
 export function MainMenu() {
     const router = useRouter()
 
     return (
-        <div className="flex min-h-screen items-center justify-center">
-            <div className="flex flex-col gap-4 w-full max-w-md px-4">
-                <h1 className="text-4xl font-bold text-center mb-8">Coup</h1>
+        <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-50">
+            <div className="flex flex-col gap-6 w-full max-w-2xl px-12 py-16 bg-slate-900/50 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-sm">
+                <div className="text-center space-y-2 mb-8">
+                    <h1 className="text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-amber-300 to-amber-600 drop-shadow-sm">
+                        COUP
+                    </h1>
+                    <p className="text-slate-400 font-medium tracking-wide uppercase text-sm">
+                        Bluff • Deduce • Dominate
+                    </p>
+                </div>
 
                 <Button
                     size="lg"
                     onClick={() => router.push('/create')}
-                    className="w-full text-lg py-6"
+                    className="w-full text-lg py-8 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white border-0 shadow-lg transition-all hover:scale-[1.02]"
                 >
+                    <Crown className="mr-2 h-6 w-6" />
                     Create New Game
                 </Button>
 
@@ -23,8 +32,9 @@ export function MainMenu() {
                     size="lg"
                     variant="outline"
                     onClick={() => router.push('/join')}
-                    className="w-full text-lg py-6"
+                    className="w-full text-lg py-8 border-2 border-slate-700 bg-transparent hover:bg-slate-800 text-slate-200 hover:text-white transition-all hover:scale-[1.02]"
                 >
+                    <Users className="mr-2 h-6 w-6" />
                     Join Game
                 </Button>
             </div>

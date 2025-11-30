@@ -86,7 +86,7 @@ export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
                             variant="outline"
                             size="sm"
                             onClick={() => setShowRules(true)}
-                            className="hidden md:flex gap-2 border-purple-500/50 text-purple-300 hover:text-white hover:bg-purple-900/50"
+                            className="hidden md:flex gap-2 border-purple-500/50 text-purple-300 bg-transparent hover:text-white hover:bg-purple-900/50"
                         >
                             <BookOpen className="size-4" />
                             Rules
