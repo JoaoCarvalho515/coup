@@ -22,6 +22,42 @@ const CHARACTER_IMAGES: Record<CharacterType, string> = {
     Contessa: "/textures/contessa.jpg",
 };
 
+const formatLogMessage = (message: string, players: { name: string }[]) => {
+    const characters = ["Duke", "Assassin", "Captain", "Ambassador", "Contessa"];
+    const characterColors: Record<string, string> = {
+        Duke: "text-purple-400 font-bold",
+        Assassin: "text-red-400 font-bold",
+        Captain: "text-cyan-400 font-bold",
+        Ambassador: "text-indigo-400 font-bold",
+        Contessa: "text-orange-400 font-bold",
+    };
+
+    const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const playerNames = players.map(p => p.name).filter(Boolean);
+    playerNames.sort((a, b) => b.length - a.length);
+
+    const patterns = [
+        ...playerNames.map(name => `\\b${escapeRegExp(name)}\\b`),
+        ...characters.map(char => `\\b${char}\\b`)
+    ];
+
+    if (patterns.length === 0) return message;
+
+    const regex = new RegExp(`(${patterns.join('|')})`, 'g');
+
+    const parts = message.split(regex);
+
+    return parts.map((part, index) => {
+        if (characters.includes(part)) {
+            return <span key={index} className={characterColors[part]}>{part}</span>;
+        } else if (playerNames.includes(part)) {
+            return <span key={index} className="text-yellow-300 font-bold">{part}</span>;
+        }
+        return part;
+    });
+};
+
 export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
     const [showRules, setShowRules] = useState(false);
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -359,7 +395,7 @@ export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
                                 <p key={index} className="text-sm text-slate-400">
                                     <span className="text-slate-500">{new Date(entry.timestamp).toLocaleTimeString()}</span>
                                     {" - "}
-                                    {entry.message}
+                                    {formatLogMessage(entry.message, gameState.players)}
                                 </p>
                             ))}
                         </div>
