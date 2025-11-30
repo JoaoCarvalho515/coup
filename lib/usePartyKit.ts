@@ -58,10 +58,10 @@ export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupR
     // Generate or retrieve persistent player ID
     const [playerId] = useState<string>(() => {
         if (typeof window !== 'undefined') {
-            let id = localStorage.getItem("coup_player_id");
+            let id = sessionStorage.getItem("coup_player_id");
             if (!id) {
                 id = crypto.randomUUID();
-                localStorage.setItem("coup_player_id", id);
+                sessionStorage.setItem("coup_player_id", id);
             }
             return id;
         }
