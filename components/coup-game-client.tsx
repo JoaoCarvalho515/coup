@@ -40,6 +40,7 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
         passChallenge,
         exchangeCards,
         loseInfluence,
+        returnToLobby,
     } = usePartyCoup({
         roomCode,
         action: action || undefined,
@@ -343,6 +344,8 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
             onPassChallenge={passChallenge}
             onExchangeCards={exchangeCards}
             onLoseInfluence={loseInfluence}
+            onReturnToLobby={returnToLobby}
+            isHost={isHost}
             error={error}
         />
     );

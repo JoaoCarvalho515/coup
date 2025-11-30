@@ -1,9 +1,10 @@
 import type * as Party from "partykit/server";
-import { GameState, initializeGame, performAction, blockAction, passBlock, challengeAction, passChallenge, exchangeCards, loseInfluence, ActionRequest, BlockRequest, ChallengeRequest } from "../lib/game-logic";
+import { GameState, initializeGame, performAction, blockAction, passBlock, challengeAction, passChallenge, exchangeCards, loseInfluence, eliminatePlayer, resetGame, ActionRequest, BlockRequest, ChallengeRequest } from "../lib/game-logic";
 
 type MessageType =
   | { type: "join"; payload: { playerName: string } }
   | { type: "start-game" }
+  | { type: "return-to-lobby" }
   | { type: "kick-player"; payload: { playerId: string } }
   | { type: "action"; payload: ActionRequest }
   | { type: "block"; payload: BlockRequest }
@@ -185,6 +186,56 @@ export default class CoupServer implements Party.Server {
           this.party.broadcast(JSON.stringify({
             type: "game-started",
             payload: { gameState: this.gameState },
+          }));
+          break;
+        }
+
+        case "return-to-lobby": {
+          if (!this.gameState) return;
+
+          // Allow if host OR if game is over
+          if (playerId !== this.hostId && this.gameState.phase !== 'game_over') {
+            sender.send(JSON.stringify({
+              type: "error",
+              payload: { message: "Only the host can return to lobby" },
+            }));
+            return;
+          }
+
+          this.gameState = null;
+
+          // Clean up players who are no longer connected
+          const activePlayerIds = new Set<string>();
+          for (const conn of this.party.getConnections()) {
+            const pid = this.connectionToPlayerId.get(conn.id);
+            if (pid) activePlayerIds.add(pid);
+          }
+
+          for (const [pid] of this.players) {
+            if (!activePlayerIds.has(pid)) {
+              this.players.delete(pid);
+            }
+          }
+
+          // If host was removed (disconnected), assign new host
+          if (this.hostId && !this.players.has(this.hostId)) {
+            const remaining = Array.from(this.players.keys());
+            this.hostId = remaining.length > 0 ? remaining[0] : null;
+          }
+
+          await this.saveState();
+
+          this.party.broadcast(JSON.stringify({
+            type: "state",
+            payload: null,
+          }));
+
+          this.party.broadcast(JSON.stringify({
+            type: "players-updated",
+            payload: {
+              players: Array.from(this.players.values()),
+              hostId: this.hostId
+            },
           }));
           break;
         }
@@ -371,6 +422,20 @@ export default class CoupServer implements Party.Server {
 
     if (playerId) {
       this.connectionToPlayerId.delete(conn.id);
+    }
+
+    // If game is in progress, eliminate the player
+    if (this.gameState && this.gameState.phase !== "waiting" && this.gameState.phase !== "game_over" && playerId) {
+      // Check if player is actually in the game (might be a spectator or old connection)
+      const player = this.gameState.players.find(p => p.id === playerId);
+      if (player && player.isAlive) {
+        this.gameState = eliminatePlayer(this.gameState, playerId);
+        this.saveState();
+        this.party.broadcast(JSON.stringify({
+          type: "state",
+          payload: this.gameState,
+        }));
+      }
     }
 
     // Remove player from the lobby if game hasn't started

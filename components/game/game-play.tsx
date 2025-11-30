@@ -16,6 +16,8 @@ interface GamePlayProps {
     onPassChallenge: () => void;
     onExchangeCards: (keptCardIds: string[]) => void;
     onLoseInfluence: (cardId: string) => void;
+    onReturnToLobby: () => void;
+    isHost: boolean;
     error?: string | null;
 }
 
@@ -29,6 +31,8 @@ export function GamePlay({
     onPassChallenge,
     onExchangeCards,
     onLoseInfluence,
+    onReturnToLobby,
+    isHost,
     error,
 }: GamePlayProps) {
     // Find my player ID from the player name
@@ -90,6 +94,8 @@ export function GamePlay({
                 gameState={gameState}
                 myPlayerId={myPlayerId}
                 onAction={handleAction}
+                onReturnToLobby={onReturnToLobby}
+                isHost={isHost}
             />
 
             {/* Block/Challenge Panel - Overlay */}

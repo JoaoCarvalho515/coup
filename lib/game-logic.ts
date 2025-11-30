@@ -772,6 +772,116 @@ export function exchangeCards(
     return newState;
 }
 
+export function eliminatePlayer(state: GameState, playerId: string): GameState {
+    const newState = { ...state };
+    const player = getPlayer(newState, playerId);
+
+    if (!player || !player.isAlive) return newState;
+
+    // Reveal all cards
+    player.cards.forEach(c => c.revealed = true);
+    player.isAlive = false;
+
+    addLog(newState, `${player.name} disconnected and was eliminated`, playerId);
+
+    // Check for winner immediately
+    const alivePlayers = getAlivePlayers(newState);
+    if (alivePlayers.length <= 1) {
+        if (alivePlayers.length === 1) {
+            newState.winner = alivePlayers[0].id;
+            addLog(newState, `${alivePlayers[0].name} wins!`, alivePlayers[0].id);
+        }
+        newState.phase = 'game_over';
+        return newState;
+    }
+
+    // Handle game flow interruption
+
+    // 1. If it was the disconnected player's turn
+    if (getCurrentPlayer(newState).id === playerId) {
+        // Clear any pending actions initiated by them
+        newState.pendingAction = null;
+        newState.pendingBlock = null;
+        newState.pendingChallenge = null;
+        newState.pendingExchangeCards = null;
+        newState.pendingInfluenceLoss = null;
+
+        endTurn(newState);
+        return newState;
+    }
+
+    // 2. If they were the target of the current action
+    if (newState.pendingAction?.targetId === playerId) {
+        addLog(newState, `Action cancelled because target disconnected`);
+        newState.pendingAction = null;
+        newState.pendingBlock = null;
+        newState.pendingChallenge = null;
+        endTurn(newState); // End the actor's turn
+        return newState;
+    }
+
+    // 3. If they were blocking
+    if (newState.pendingBlock?.blockerId === playerId) {
+        addLog(newState, `Block cancelled because blocker disconnected`);
+        newState.pendingBlock = null;
+        // If we were in challenge window for the block, go back to resolving action?
+        // Or just resolve the action immediately since block is gone.
+        newState.phase = 'resolving';
+        resolveAction(newState);
+        return newState;
+    }
+
+    // 4. If they were challenging
+    if (newState.pendingChallenge?.challengerId === playerId) {
+        addLog(newState, `Challenge cancelled because challenger disconnected`);
+        newState.pendingChallenge = null;
+
+        // If they were challenging a block
+        if (newState.pendingBlock) {
+            // Block stands? Or we go back to block window?
+            // If challenge is cancelled, usually the action/block stands.
+            // Let's say block stands.
+            addLog(newState, `Block stands`);
+            newState.pendingAction = null;
+            newState.pendingBlock = null;
+            endTurn(newState);
+        } else {
+            // They were challenging an action
+            // Action stands
+            newState.phase = 'resolving';
+            resolveAction(newState);
+        }
+        return newState;
+    }
+
+    // 5. If they were supposed to lose influence
+    if (newState.pendingInfluenceLoss === playerId) {
+        // They are already dead, so we just need to move on.
+        // We need to know what to do next.
+        // This is tricky because loseInfluence usually handles the "next step".
+        // But since they are dead, we can probably just end the turn or resolve action.
+
+        // If it was a challenge, and they lost.
+        if (newState.pendingChallenge) {
+            // ... logic from loseInfluence ...
+            // It's safer to just end the turn to avoid getting stuck.
+            newState.pendingAction = null;
+            newState.pendingBlock = null;
+            newState.pendingChallenge = null;
+            newState.pendingInfluenceLoss = null;
+            endTurn(newState);
+        } else {
+            // Regular influence loss
+            newState.pendingAction = null;
+            newState.pendingInfluenceLoss = null;
+            endTurn(newState);
+        }
+        return newState;
+    }
+
+    return newState;
+}
+
 // ============================================================================
 // TURN MANAGEMENT
 // ============================================================================
@@ -865,6 +975,7 @@ export const GameLogic = {
     // Influence
     loseInfluence,
     exchangeCards,
+    eliminatePlayer,
 
     // Turn management
     endTurn,
@@ -872,4 +983,14 @@ export const GameLogic = {
     // Utilities
     addLog,
     getGameSummary,
+    resetGame,
 };
+
+export function resetGame(state: GameState): GameState {
+    const playersList = state.players.map(p => ({ id: p.id, name: p.name }));
+    const newState = initializeGame(playersList);
+    // Preserve the original game ID if needed, but a new one is fine too.
+    // Let's keep the ID to avoid confusion if clients are tracking it.
+    newState.id = state.id;
+    return newState;
+}

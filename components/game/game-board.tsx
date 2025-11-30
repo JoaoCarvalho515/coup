@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card as CardUI, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GameState, ActionType, CharacterType, Player } from "@/lib/game-logic";
@@ -65,6 +65,8 @@ interface GameBoardProps {
     gameState: GameState;
     myPlayerId: string;
     onAction: (action: ActionType, targetId?: string) => void;
+    onReturnToLobby: () => void;
+    isHost: boolean;
 }
 
 const CHARACTER_IMAGES: Record<CharacterType, string> = {
@@ -111,9 +113,51 @@ const formatLogMessage = (message: string, players: { name: string }[]) => {
     });
 };
 
-export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
+function VictoryCountdown({
+    winnerName,
+    onReturnToLobby,
+}: {
+    winnerName: string;
+    onReturnToLobby: () => void;
+}) {
+    const [countdown, setCountdown] = useState(3);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCountdown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    onReturnToLobby();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [onReturnToLobby]);
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-gradient-to-br from-purple-900 to-pink-900 rounded-2xl p-8 border-4 border-yellow-500 shadow-2xl text-center animate-in zoom-in duration-500 max-w-md w-full mx-4">
+                <div className="text-6xl mb-4">🎉</div>
+                <h2 className="text-4xl font-bold mb-2 text-yellow-400">Victory!</h2>
+                <p className="text-2xl text-white mb-8">
+                    {winnerName} wins!
+                </p>
+                <div className="flex flex-col gap-3">
+                    <p className="text-slate-300 animate-pulse">
+                        Returning to lobby in {countdown}...
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, isHost }: GameBoardProps) {
     const [showRules, setShowRules] = useState(false);
     const [selectedTargetAction, setSelectedTargetAction] = useState<ActionType | null>(null);
+
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     const myPlayer = gameState.players.find(p => p.id === myPlayerId);
     const isMyTurn = currentPlayer.id === myPlayerId;
@@ -434,21 +478,10 @@ export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
 
                 {/* Winner Display */}
                 {gameState.winner && (
-                    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-                        <div className="bg-gradient-to-br from-purple-900 to-pink-900 rounded-2xl p-8 border-4 border-yellow-500 shadow-2xl text-center animate-in zoom-in duration-500">
-                            <div className="text-6xl mb-4">🎉</div>
-                            <h2 className="text-4xl font-bold mb-2 text-yellow-400">Victory!</h2>
-                            <p className="text-2xl text-white">
-                                {gameState.players.find(p => p.id === gameState.winner)?.name} wins!
-                            </p>
-                            <Button
-                                onClick={() => window.location.href = '/'}
-                                className="mt-6 bg-yellow-500 hover:bg-yellow-600 text-black"
-                            >
-                                Back to Menu
-                            </Button>
-                        </div>
-                    </div>
+                    <VictoryCountdown
+                        winnerName={gameState.players.find(p => p.id === gameState.winner)?.name || "Unknown Player"}
+                        onReturnToLobby={onReturnToLobby}
+                    />
                 )}
             </div>
         </div>

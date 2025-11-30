@@ -40,6 +40,7 @@ interface UsePartyCoupReturn {
     passChallenge: () => void;
     exchangeCards: (keptCardIds: string[]) => void;
     loseInfluence: (cardId: string) => void;
+    returnToLobby: () => void;
 }
 
 export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupReturn {
@@ -199,6 +200,10 @@ export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupR
         sendMessage({ type: "lose-influence", payload: { cardId } });
     }, [sendMessage]);
 
+    const returnToLobby = useCallback(() => {
+        sendMessage({ type: "return-to-lobby" });
+    }, [sendMessage]);
+
     return {
         gameState,
         players,
@@ -216,5 +221,6 @@ export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupR
         passChallenge,
         exchangeCards,
         loseInfluence,
+        returnToLobby,
     };
 }
