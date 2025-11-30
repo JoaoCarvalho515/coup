@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Card as CardUI, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GameState, ActionType, CharacterType } from "@/lib/game-logic";
-import { Coins, Crown, Skull, Shield, Users } from "lucide-react";
+import { Coins, Crown, Skull, Shield, Users, BookOpen } from "lucide-react";
+import Image from "next/image";
+import { RulesModal } from "./rules-modal";
 
 interface GameBoardProps {
     gameState: GameState;
@@ -11,15 +14,52 @@ interface GameBoardProps {
     onAction: (action: ActionType, targetId?: string) => void;
 }
 
-const CHARACTER_ICONS: Record<CharacterType, string> = {
-    Duke: "👑",
-    Assassin: "🗡️",
-    Captain: "⚓",
-    Ambassador: "📜",
-    Contessa: "🛡️",
+const CHARACTER_IMAGES: Record<CharacterType, string> = {
+    Duke: "/textures/duke.jpg",
+    Assassin: "/textures/assassin.jpg",
+    Captain: "/textures/captain.jpg",
+    Ambassador: "/textures/ambassador.jpg",
+    Contessa: "/textures/contessa.jpg",
+};
+
+const formatLogMessage = (message: string, players: { name: string }[]) => {
+    const characters = ["Duke", "Assassin", "Captain", "Ambassador", "Contessa"];
+    const characterColors: Record<string, string> = {
+        Duke: "text-purple-400 font-bold",
+        Assassin: "text-red-400 font-bold",
+        Captain: "text-cyan-400 font-bold",
+        Ambassador: "text-indigo-400 font-bold",
+        Contessa: "text-orange-400 font-bold",
+    };
+
+    const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const playerNames = players.map(p => p.name).filter(Boolean);
+    playerNames.sort((a, b) => b.length - a.length);
+
+    const patterns = [
+        ...playerNames.map(name => `\\b${escapeRegExp(name)}\\b`),
+        ...characters.map(char => `\\b${char}\\b`)
+    ];
+
+    if (patterns.length === 0) return message;
+
+    const regex = new RegExp(`(${patterns.join('|')})`, 'g');
+
+    const parts = message.split(regex);
+
+    return parts.map((part, index) => {
+        if (characters.includes(part)) {
+            return <span key={index} className={characterColors[part]}>{part}</span>;
+        } else if (playerNames.includes(part)) {
+            return <span key={index} className="text-yellow-300 font-bold">{part}</span>;
+        }
+        return part;
+    });
 };
 
 export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
+    const [showRules, setShowRules] = useState(false);
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     const myPlayer = gameState.players.find(p => p.id === myPlayerId);
     const isMyTurn = currentPlayer.id === myPlayerId;
@@ -29,16 +69,36 @@ export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-6">
+            <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex justify-between items-center bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700">
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                            Coup
-                        </h1>
-                        <p className="text-slate-400 text-sm">
-                            {currentPlayer.name}&apos;s Turn
-                        </p>
+                    <div className="flex items-center gap-4">
+                        <div>
+                            <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                                Coup
+                            </h1>
+                            <p className="text-slate-400 text-sm">
+                                {currentPlayer.name}&apos;s Turn
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowRules(true)}
+                            className="hidden md:flex gap-2 border-purple-500/50 text-purple-300 hover:text-white hover:bg-purple-900/50"
+                        >
+                            <BookOpen className="size-4" />
+                            Rules
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowRules(true)}
+                            className="md:hidden text-purple-300 hover:text-white hover:bg-purple-900/50"
+                        >
+                            <BookOpen className="size-5" />
+                        </Button>
                     </div>
                     <div className="text-right">
                         <div className="flex items-center gap-2 text-slate-400 text-sm">
@@ -275,26 +335,48 @@ export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
                                     {player.cards.map((card) => (
                                         <div
                                             key={card.id}
-                                            className={`${isMe ? "w-20 h-28 text-3xl" : "w-16 h-24 text-2xl"} rounded-lg flex flex-col items-center justify-center font-bold transition-all relative group ${card.revealed
-                                                ? "bg-red-900/50 border-2 border-red-500 opacity-70"
+                                            className={`w-28 h-40 rounded-lg transition-all relative group overflow-hidden shadow-xl ${card.revealed
+                                                ? "opacity-60 grayscale"
                                                 : isMe
-                                                    ? "bg-gradient-to-br from-purple-600 to-pink-600 border-2 border-purple-400 shadow-lg shadow-purple-500/50"
-                                                    : "bg-gradient-to-br from-slate-700 to-slate-800 border-2 border-slate-600"
+                                                    ? "hover:scale-105 hover:z-10 hover:shadow-purple-500/50 ring-2 ring-purple-500/50"
+                                                    : "ring-1 ring-slate-600"
                                                 }`}
                                             title={isMe && !card.revealed ? card.character : "Hidden Card"}
                                         >
                                             {card.revealed ? (
-                                                <>
-                                                    <Skull className={`${isMe ? "size-8" : "size-6"} text-red-400 mb-1`} />
-                                                    <span className={`${isMe ? "text-xs" : "text-[10px]"} text-red-400 text-center leading-tight px-1`}>{card.character}</span>
-                                                </>
+                                                <div className="w-full h-full relative bg-slate-900 flex flex-col items-center justify-center">
+                                                    <Image
+                                                        src={CHARACTER_IMAGES[card.character]}
+                                                        alt={card.character}
+                                                        fill
+                                                        className="object-cover opacity-30"
+                                                    />
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/40">
+                                                        <Skull className="size-8 text-red-500 mb-1 drop-shadow-lg" />
+                                                        <span className="text-xs font-bold text-red-500 bg-black/70 px-2 py-1 rounded border border-red-500/30">{card.character}</span>
+                                                    </div>
+                                                </div>
                                             ) : isMe ? (
-                                                <>
-                                                    <span>{CHARACTER_ICONS[card.character]}</span>
-                                                    <span className="text-xs mt-2 text-white text-center leading-tight px-1">{card.character}</span>
-                                                </>
+                                                <div className="w-full h-full relative">
+                                                    <Image
+                                                        src={CHARACTER_IMAGES[card.character]}
+                                                        alt={card.character}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2 pt-6">
+                                                        <p className="text-center text-white font-bold text-sm shadow-black drop-shadow-md">{card.character}</p>
+                                                    </div>
+                                                </div>
                                             ) : (
-                                                <span className="opacity-20">?</span>
+                                                <div className="w-full h-full relative bg-slate-800">
+                                                    <Image
+                                                        src="/textures/card-back.svg"
+                                                        alt="Hidden Card"
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     ))}
@@ -313,7 +395,7 @@ export function GameBoard({ gameState, myPlayerId, onAction }: GameBoardProps) {
                                 <p key={index} className="text-sm text-slate-400">
                                     <span className="text-slate-500">{new Date(entry.timestamp).toLocaleTimeString()}</span>
                                     {" - "}
-                                    {entry.message}
+                                    {formatLogMessage(entry.message, gameState.players)}
                                 </p>
                             ))}
                         </div>
