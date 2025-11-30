@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GameState, CharacterType } from "@/lib/game-logic";
 import { AlertTriangle, Shield, Swords } from "lucide-react";
+import Image from "next/image";
 
 interface BlockChallengePanelProps {
     gameState: GameState;
@@ -12,6 +13,14 @@ interface BlockChallengePanelProps {
     onChallenge: (targetPlayerId: string, character: CharacterType) => void;
     onPass: () => void;
 }
+
+const CHARACTER_IMAGES: Record<CharacterType, string> = {
+    Duke: "/textures/duke.jpg",
+    Assassin: "/textures/assassin.jpg",
+    Captain: "/textures/captain.jpg",
+    Ambassador: "/textures/ambassador.jpg",
+    Contessa: "/textures/contessa.jpg",
+};
 
 export function BlockChallengePanel({
     gameState,
@@ -69,18 +78,24 @@ export function BlockChallengePanel({
                         {gameState.pendingAction.type === 'foreign_aid' && (
                             <Button
                                 onClick={() => onBlock('Duke')}
-                                className="w-full bg-purple-600 hover:bg-purple-700"
+                                className="w-full bg-purple-600 hover:bg-purple-700 h-14 flex items-center justify-start gap-3 px-4"
                             >
-                                Block with Duke
+                                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/50">
+                                    <Image src={CHARACTER_IMAGES.Duke} alt="Duke" fill className="object-cover" />
+                                </div>
+                                <span className="font-bold">Block with Duke</span>
                             </Button>
                         )}
 
                         {gameState.pendingAction.type === 'assassinate' && target?.id === myPlayerId && (
                             <Button
                                 onClick={() => onBlock('Contessa')}
-                                className="w-full bg-red-600 hover:bg-red-700"
+                                className="w-full bg-red-600 hover:bg-red-700 h-14 flex items-center justify-start gap-3 px-4"
                             >
-                                Block with Contessa
+                                <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/50">
+                                    <Image src={CHARACTER_IMAGES.Contessa} alt="Contessa" fill className="object-cover" />
+                                </div>
+                                <span className="font-bold">Block with Contessa</span>
                             </Button>
                         )}
 
@@ -88,15 +103,21 @@ export function BlockChallengePanel({
                             <>
                                 <Button
                                     onClick={() => onBlock('Captain')}
-                                    className="w-full bg-cyan-600 hover:bg-cyan-700"
+                                    className="w-full bg-cyan-600 hover:bg-cyan-700 h-14 flex items-center justify-start gap-3 px-4"
                                 >
-                                    Block with Captain
+                                    <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/50">
+                                        <Image src={CHARACTER_IMAGES.Captain} alt="Captain" fill className="object-cover" />
+                                    </div>
+                                    <span className="font-bold">Block with Captain</span>
                                 </Button>
                                 <Button
                                     onClick={() => onBlock('Ambassador')}
-                                    className="w-full bg-indigo-600 hover:bg-indigo-700"
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 h-14 flex items-center justify-start gap-3 px-4"
                                 >
-                                    Block with Ambassador
+                                    <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/50">
+                                        <Image src={CHARACTER_IMAGES.Ambassador} alt="Ambassador" fill className="object-cover" />
+                                    </div>
+                                    <span className="font-bold">Block with Ambassador</span>
                                 </Button>
                             </>
                         )}
@@ -161,11 +182,13 @@ export function BlockChallengePanel({
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-start gap-3">
-                        <AlertTriangle className="size-6 text-red-400 flex-shrink-0 mt-1" />
+                        <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-red-500 flex-shrink-0 shadow-lg shadow-red-500/20">
+                            <Image src={CHARACTER_IMAGES[claimedCharacter]} alt={claimedCharacter} fill className="object-cover" />
+                        </div>
                         <div>
-                            <p className="text-white mb-2">{actionDescription}</p>
+                            <p className="text-white mb-2 font-medium">{actionDescription}</p>
                             <p className="text-sm text-slate-400">
-                                If you challenge and they don&apos;t have {claimedCharacter}, they lose influence.
+                                If you challenge and they don&apos;t have <span className="font-bold text-red-300">{claimedCharacter}</span>, they lose influence.
                                 If they do have it, YOU lose influence!
                             </p>
                         </div>
