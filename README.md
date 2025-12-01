@@ -2,6 +2,12 @@
 
 A multiplayer Coup card game built with Next.js, featuring 3D rendered cards and real-time gameplay using PartyKit.
 
+## Gameplay Preview
+
+![Gameplay 1](public/ui/1.jpg)
+![Gameplay 2](public/ui/2.jpg)
+![Gameplay 3](public/ui/3.jpg)
+
 ## Getting Started
 
 First, install dependencies:
