@@ -541,6 +541,7 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                                     <Button
                                         onClick={() => onAction('income')}
                                         className="h-auto py-4 flex flex-col items-start bg-green-600 hover:bg-green-700 transition-all hover:scale-105"
+                                        disabled={myPlayer.coins >= 10}
                                     >
                                         <span className="text-lg font-bold">Income</span>
                                         <span className="text-xs opacity-80">+1 coin (safe)</span>
