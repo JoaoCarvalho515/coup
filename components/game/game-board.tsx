@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { Card as CardUI, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { GameState, ActionType, CharacterType, Player } from "@/lib/game-logic";
-import { Coins, Crown, Skull, Shield, Users, BookOpen, X } from "lucide-react";
+import { Coins, Crown, Skull, Shield, Users, BookOpen, X, History, Swords, AlertTriangle, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { RulesModal } from "./rules-modal";
 
@@ -188,6 +190,13 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
         }
     };
 
+    const groupedLogs = gameState.log.reduce((acc, entry) => {
+        const turn = entry.turn || 1;
+        if (!acc[turn]) acc[turn] = [];
+        acc[turn].push(entry);
+        return acc;
+    }, {} as Record<number, typeof gameState.log>);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-6">
             <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
@@ -198,6 +207,110 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                 actionType={selectedTargetAction || ''}
                 players={alivePlayers.filter(p => p.id !== myPlayerId)}
             />
+
+            {/* Game Log Sidepanel */}
+            <Sheet>
+                <SheetTrigger asChild>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="fixed bottom-4 right-4 z-50 rounded-full h-14 w-14 shadow-xl bg-slate-800 border-purple-500 text-purple-400 hover:bg-slate-700 hover:text-purple-300"
+                    >
+                        <History className="size-6" />
+                    </Button>
+                </SheetTrigger>
+                <SheetContent className="bg-slate-950 border-l-slate-800 text-slate-200 w-[400px] sm:w-[540px] p-0 flex flex-col shadow-2xl">
+                    <SheetHeader className="p-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-purple-500/20 p-2.5 rounded-xl border border-purple-500/20">
+                                <History className="size-5 text-purple-400" />
+                            </div>
+                            <div>
+                                <SheetTitle className="text-purple-100 text-xl">Game Log</SheetTitle>
+                                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">History & Events</p>
+                            </div>
+                        </div>
+                    </SheetHeader>
+                    <ScrollArea className="flex-1 px-6">
+                        <div className="py-6 space-y-8">
+                            {Object.entries(groupedLogs).reverse().map(([turn, logs]) => (
+                                <div key={turn} className="relative">
+                                    <div className="sticky top-0 z-10 flex items-center gap-4 mb-6">
+                                        <div className="bg-slate-800/90 backdrop-blur text-slate-400 text-[10px] font-bold px-3 py-1 rounded-full border border-slate-700 uppercase tracking-wider shadow-sm">
+                                            Turn {turn}
+                                        </div>
+                                        <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent"></div>
+                                    </div>
+                                    <div className="space-y-1 pl-2">
+                                        {logs.map((entry, i) => {
+                                            let Icon = Users;
+                                            let iconColor = "text-slate-500";
+                                            let iconBg = "bg-slate-800/50";
+
+                                            // Determine icon based on content
+                                            if (entry.message.includes("Game started")) {
+                                                Icon = Crown;
+                                                iconColor = "text-yellow-400";
+                                                iconBg = "bg-yellow-500/10";
+                                            } else if (entry.message.includes("eliminated")) {
+                                                Icon = Skull;
+                                                iconColor = "text-red-400";
+                                                iconBg = "bg-red-500/10";
+                                            } else if (entry.message.includes("challenges")) {
+                                                Icon = AlertTriangle;
+                                                iconColor = "text-orange-400";
+                                                iconBg = "bg-orange-500/10";
+                                            } else if (entry.message.includes("blocks")) {
+                                                Icon = Shield;
+                                                iconColor = "text-blue-400";
+                                                iconBg = "bg-blue-500/10";
+                                            } else if (entry.message.includes("income") || entry.message.includes("foreign_aid") || entry.message.includes("tax") || entry.message.includes("steal")) {
+                                                Icon = Coins;
+                                                iconColor = "text-emerald-400";
+                                                iconBg = "bg-emerald-500/10";
+                                            } else if (entry.message.includes("assassinate") || entry.message.includes("Coup")) {
+                                                Icon = Swords;
+                                                iconColor = "text-red-400";
+                                                iconBg = "bg-red-500/10";
+                                            } else if (entry.message.includes("exchange")) {
+                                                Icon = RefreshCw;
+                                                iconColor = "text-indigo-400";
+                                                iconBg = "bg-indigo-500/10";
+                                            }
+
+                                            return (
+                                                <div key={i} className="group flex gap-4 relative pb-6 last:pb-0">
+                                                    {/* Timeline line */}
+                                                    {i !== logs.length - 1 && (
+                                                        <div className="absolute left-[19px] top-10 bottom-0 w-px bg-slate-800 group-last:hidden" />
+                                                    )}
+
+                                                    <div className={`relative z-10 shrink-0 size-10 rounded-full flex items-center justify-center border border-slate-800 ${iconBg} shadow-sm`}>
+                                                        <Icon className={`size-5 ${iconColor}`} />
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="bg-slate-900/40 border border-slate-800/60 rounded-xl p-3.5 hover:bg-slate-800/40 hover:border-slate-700/60 transition-all duration-200 group-hover:shadow-md group-hover:shadow-black/20">
+                                                            <p className="text-sm text-slate-300 leading-relaxed break-words">
+                                                                {formatLogMessage(entry.message, gameState.players)}
+                                                            </p>
+                                                            <p className="text-[10px] text-slate-600 mt-2 font-medium uppercase tracking-wide flex items-center gap-1">
+                                                                <History className="size-3" />
+                                                                {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </ScrollArea>
+                </SheetContent>
+            </Sheet>
+
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="flex justify-between items-center bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700">
@@ -234,6 +347,116 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                             {gameState.phase.replace('_', ' ')}
                         </p>
                     </div>
+                </div>
+
+                {/* Players Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[
+                        gameState.players.find(p => p.id === myPlayerId)!,
+                        ...gameState.players.filter(p => p.id !== myPlayerId)
+                    ].filter(Boolean).map((player) => {
+                        const isMe = player.id === myPlayerId;
+                        const isCurrentTurn = player.id === currentPlayer.id;
+
+                        return (
+                            <div
+                                key={player.id}
+                                className={`rounded-lg p-4 transition-all relative overflow-hidden ${isMe
+                                    ? "bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-2 border-purple-500/50 shadow-lg shadow-purple-500/20"
+                                    : isCurrentTurn
+                                        ? "bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20"
+                                        : player.isAlive
+                                            ? "bg-slate-800/50 border border-slate-700"
+                                            : "bg-slate-900/50 border border-slate-800 opacity-50"
+                                    }`}
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        {isMe ? (
+                                            <div className="bg-purple-500/20 p-2 rounded-full">
+                                                <Shield className="size-5 text-purple-400" />
+                                            </div>
+                                        ) : isCurrentTurn ? (
+                                            <div className="bg-blue-500/20 p-2 rounded-full">
+                                                <Crown className="size-5 text-blue-400" />
+                                            </div>
+                                        ) : (
+                                            <div className="bg-slate-700/50 p-2 rounded-full">
+                                                <Users className="size-5 text-slate-400" />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                                {player.name}
+                                                {isMe && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">You</span>}
+                                            </h3>
+                                            {!player.isAlive && (
+                                                <span className="text-xs text-red-400 font-semibold">Eliminated</span>
+                                            )}
+                                            {player.isAlive && isCurrentTurn && !isMe && (
+                                                <span className="text-xs text-blue-400">Current Turn</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full border border-white/5">
+                                        <Coins className="size-4 text-yellow-400" />
+                                        <span className="text-xl font-bold text-yellow-400">{player.coins}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 justify-center">
+                                    {player.cards.map((card) => (
+                                        <div
+                                            key={card.id}
+                                            className={`w-28 h-40 rounded-lg transition-all relative group overflow-hidden shadow-xl ${card.revealed
+                                                ? "opacity-60 grayscale"
+                                                : isMe
+                                                    ? "hover:scale-105 hover:z-10 hover:shadow-purple-500/50 ring-2 ring-purple-500/50"
+                                                    : "ring-1 ring-slate-600"
+                                                }`}
+                                            title={isMe && !card.revealed ? card.character : "Hidden Card"}
+                                        >
+                                            {card.revealed ? (
+                                                <div className="w-full h-full relative bg-slate-900 flex flex-col items-center justify-center">
+                                                    <Image
+                                                        src={CHARACTER_IMAGES[card.character]}
+                                                        alt={card.character}
+                                                        fill
+                                                        className="object-cover opacity-30"
+                                                    />
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/40">
+                                                        <Skull className="size-8 text-red-500 mb-1 drop-shadow-lg" />
+                                                        <span className="text-xs font-bold text-red-500 bg-black/70 px-2 py-1 rounded border border-red-500/30">{card.character}</span>
+                                                    </div>
+                                                </div>
+                                            ) : isMe ? (
+                                                <div className="w-full h-full relative">
+                                                    <Image
+                                                        src={CHARACTER_IMAGES[card.character]}
+                                                        alt={card.character}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2 pt-6">
+                                                        <p className="text-center text-white font-bold text-sm shadow-black drop-shadow-md">{card.character}</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="w-full h-full relative bg-slate-800">
+                                                    <Image
+                                                        src="/textures/card-back.svg"
+                                                        alt="Hidden Card"
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 {/* Action Area / Status Messages */}
@@ -362,137 +585,6 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                         </div>
                     )}
                 </div>
-
-                {/* Players Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[
-                        gameState.players.find(p => p.id === myPlayerId)!,
-                        ...gameState.players.filter(p => p.id !== myPlayerId)
-                    ].filter(Boolean).map((player) => {
-                        const isMe = player.id === myPlayerId;
-                        const isCurrentTurn = player.id === currentPlayer.id;
-
-                        return (
-                            <div
-                                key={player.id}
-                                className={`rounded-lg p-4 transition-all relative overflow-hidden ${isMe
-                                    ? "bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-2 border-purple-500/50 shadow-lg shadow-purple-500/20"
-                                    : isCurrentTurn
-                                        ? "bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20"
-                                        : player.isAlive
-                                            ? "bg-slate-800/50 border border-slate-700"
-                                            : "bg-slate-900/50 border border-slate-800 opacity-50"
-                                    }`}
-                            >
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        {isMe ? (
-                                            <div className="bg-purple-500/20 p-2 rounded-full">
-                                                <Shield className="size-5 text-purple-400" />
-                                            </div>
-                                        ) : isCurrentTurn ? (
-                                            <div className="bg-blue-500/20 p-2 rounded-full">
-                                                <Crown className="size-5 text-blue-400" />
-                                            </div>
-                                        ) : (
-                                            <div className="bg-slate-700/50 p-2 rounded-full">
-                                                <Users className="size-5 text-slate-400" />
-                                            </div>
-                                        )}
-                                        <div>
-                                            <h3 className="text-lg font-bold flex items-center gap-2">
-                                                {player.name}
-                                                {isMe && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">You</span>}
-                                            </h3>
-                                            {!player.isAlive && (
-                                                <span className="text-xs text-red-400 font-semibold">Eliminated</span>
-                                            )}
-                                            {player.isAlive && isCurrentTurn && !isMe && (
-                                                <span className="text-xs text-blue-400">Current Turn</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full border border-white/5">
-                                        <Coins className="size-4 text-yellow-400" />
-                                        <span className="text-xl font-bold text-yellow-400">{player.coins}</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-3 justify-center">
-                                    {player.cards.map((card) => (
-                                        <div
-                                            key={card.id}
-                                            className={`w-28 h-40 rounded-lg transition-all relative group overflow-hidden shadow-xl ${card.revealed
-                                                ? "opacity-60 grayscale"
-                                                : isMe
-                                                    ? "hover:scale-105 hover:z-10 hover:shadow-purple-500/50 ring-2 ring-purple-500/50"
-                                                    : "ring-1 ring-slate-600"
-                                                }`}
-                                            title={isMe && !card.revealed ? card.character : "Hidden Card"}
-                                        >
-                                            {card.revealed ? (
-                                                <div className="w-full h-full relative bg-slate-900 flex flex-col items-center justify-center">
-                                                    <Image
-                                                        src={CHARACTER_IMAGES[card.character]}
-                                                        alt={card.character}
-                                                        fill
-                                                        className="object-cover opacity-30"
-                                                    />
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/40">
-                                                        <Skull className="size-8 text-red-500 mb-1 drop-shadow-lg" />
-                                                        <span className="text-xs font-bold text-red-500 bg-black/70 px-2 py-1 rounded border border-red-500/30">{card.character}</span>
-                                                    </div>
-                                                </div>
-                                            ) : isMe ? (
-                                                <div className="w-full h-full relative">
-                                                    <Image
-                                                        src={CHARACTER_IMAGES[card.character]}
-                                                        alt={card.character}
-                                                        fill
-                                                        className="object-cover"
-                                                    />
-                                                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2 pt-6">
-                                                        <p className="text-center text-white font-bold text-sm shadow-black drop-shadow-md">{card.character}</p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="w-full h-full relative bg-slate-800">
-                                                    <Image
-                                                        src="/textures/card-back.svg"
-                                                        alt="Hidden Card"
-                                                        fill
-                                                        className="object-cover"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Game Log */}
-                <CardUI className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
-                    <CardContent className="p-4">
-                        <div className="flex justify-between items-center mb-3">
-                            <h3 className="text-lg font-semibold text-purple-300">Game Log</h3>
-                            <span className="text-sm font-medium text-slate-400">
-                                Current Turn: <span className="text-white font-bold">{currentPlayer.name}</span>
-                            </span>
-                        </div>
-                        <div className="space-y-1 max-h-48 overflow-y-auto">
-                            {gameState.log.slice(-15).reverse().map((entry, index) => (
-                                <p key={index} className="text-sm text-slate-400">
-                                    <span className="text-slate-500">{new Date(entry.timestamp).toLocaleTimeString()}</span>
-                                    {" - "}
-                                    {formatLogMessage(entry.message, gameState.players)}
-                                </p>
-                            ))}
-                        </div>
-                    </CardContent>
-                </CardUI>
 
                 {/* Winner Display */}
                 {gameState.winner && (

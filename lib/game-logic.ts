@@ -69,6 +69,7 @@ export interface GameState {
     pendingInfluenceLoss: string | null; // Player ID who needs to choose a card to reveal
     passedPlayers: string[];
     winner: string | null;
+    turn: number;
     log: GameLogEntry[];
 }
 
@@ -87,6 +88,7 @@ export interface GameLogEntry {
     message: string;
     playerId?: string;
     actionType?: string;
+    turn: number;
 }
 
 // ============================================================================
@@ -202,9 +204,11 @@ export function initializeGame(playersList: { id: string; name: string }[]): Gam
         pendingInfluenceLoss: null,
         passedPlayers: [],
         winner: null,
+        turn: 1,
         log: [{
             timestamp: Date.now(),
             message: 'Game started',
+            turn: 1,
         }],
     };
 }
@@ -924,6 +928,7 @@ export function endTurn(state: GameState): void {
     }
 
     state.currentPlayerIndex = nextIndex;
+    state.turn += 1;
     state.phase = 'action';
     state.pendingAction = null;
     state.pendingBlock = null;
@@ -953,6 +958,7 @@ export function addLog(
         message,
         playerId,
         actionType,
+        turn: state.turn,
     });
 }
 
