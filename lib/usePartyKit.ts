@@ -30,6 +30,7 @@ interface UsePartyCoupReturn {
     error: string | null;
     hostId: string | null;
     isHost: boolean;
+    playerId: string;
     joinGame: (playerName: string) => void;
     startGame: () => void;
     kickPlayer: (playerId: string) => void;
@@ -210,7 +211,8 @@ export function usePartyCoup(params: string | UsePartyCoupParams): UsePartyCoupR
         isConnected,
         error,
         hostId,
-        isHost: myId === hostId,
+        isHost: hostId === playerId,
+        playerId,
         joinGame,
         startGame,
         kickPlayer,

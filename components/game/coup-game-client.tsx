@@ -30,6 +30,7 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
         error,
         hostId,
         isHost,
+        playerId,
         joinGame,
         startGame,
         kickPlayer,
@@ -337,6 +338,7 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
         <GamePlay
             gameState={gameState}
             playerName={playerName}
+            myPlayerId={playerId}
             onAction={performAction}
             onBlock={blockAction}
             onPassBlock={passBlock}

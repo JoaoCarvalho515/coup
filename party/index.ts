@@ -135,6 +135,16 @@ export default class CoupServer implements Party.Server {
             return;
           }
 
+          // Check if name is already taken
+          const nameTaken = Array.from(this.players.values()).some(p => p.name.trim().toLowerCase() === msg.payload.playerName.trim().toLowerCase() && p.id !== playerId);
+          if (nameTaken) {
+            sender.send(JSON.stringify({
+              type: "error",
+              payload: { message: "Name is already taken" }
+            }));
+            return;
+          }
+
           // Set first player as host
           if (this.players.size === 0 && !this.hostId) {
             this.hostId = playerId;

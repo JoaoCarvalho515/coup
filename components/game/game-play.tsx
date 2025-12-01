@@ -9,6 +9,7 @@ import { GameState, ActionType, CharacterType, ActionRequest, BlockRequest, Chal
 interface GamePlayProps {
     gameState: GameState;
     playerName: string;
+    myPlayerId: string;
     onAction: (action: ActionRequest) => void;
     onBlock: (block: BlockRequest) => void;
     onPassBlock: () => void;
@@ -24,6 +25,7 @@ interface GamePlayProps {
 export function GamePlay({
     gameState,
     playerName,
+    myPlayerId,
     onAction,
     onBlock,
     onPassBlock,
@@ -36,7 +38,6 @@ export function GamePlay({
     error,
 }: GamePlayProps) {
     // Find my player ID from the player name
-    const myPlayerId = gameState.players.find(p => p.name === playerName)?.id;
     const myPlayer = myPlayerId ? gameState.players.find(p => p.id === myPlayerId) : null;
 
     const handleAction = useCallback((action: ActionType, targetId?: string) => {
