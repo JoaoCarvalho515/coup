@@ -422,11 +422,16 @@ export function performAction(state: GameState, action: ActionRequest): GameStat
 }
 
 export function resolveAction(state: GameState): void {
-    if (!state.pendingAction) return;
+    if (!state.pendingAction) {
+        addLog(state, `resolveAction called but no pendingAction found`);
+        return;
+    }
 
     const action = state.pendingAction;
     const actor = getPlayer(state, action.actorId)!;
     const target = action.targetId ? getPlayer(state, action.targetId) : null;
+
+    addLog(state, `Resolving action: ${action.type} by ${actor.name}`, action.actorId);
 
     switch (action.type) {
         case 'income':
@@ -732,6 +737,7 @@ export function loseInfluence(state: GameState, playerId: string, cardId?: strin
                 } else {
                     // Action was real, challenge failed, action succeeds
                     // Clear the challenge before resolving so the action can proceed
+                    addLog(state, `Challenge failed, resolving ${state.pendingAction?.type} action`, state.pendingAction?.actorId);
                     state.pendingChallenge = null;
                     resolveAction(state);
                 }

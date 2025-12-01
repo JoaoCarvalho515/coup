@@ -132,6 +132,7 @@ export function GamePlay({
             {/* Lose Influence Modal */}
             {needsToLoseInfluence && (
                 <CardSelector
+                    key={`lose-influence-${myPlayer!.cards.filter(c => !c.revealed).length}`}
                     cards={myPlayer!.cards}
                     title="Lose Influence"
                     description="Choose one of your cards to reveal."
