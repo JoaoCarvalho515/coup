@@ -3,8 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GameState, CharacterType } from "@/lib/game-logic";
-import { AlertTriangle, Shield, Swords } from "lucide-react";
+import { AlertTriangle, Shield, Swords, Target } from "lucide-react";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface BlockChallengePanelProps {
     gameState: GameState;
@@ -46,6 +47,8 @@ export function BlockChallengePanel({
         const canBlock = (gameState.pendingAction.type === 'foreign_aid' && gameState.pendingAction.actorId !== myPlayerId) ||
             (target && target.id === myPlayerId);
 
+        const isTargeted = target?.id === myPlayerId;
+
         if (!canBlock || hasPassed) {
             return (
                 <Card className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
@@ -59,20 +62,36 @@ export function BlockChallengePanel({
         }
 
         return (
-            <Card className="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 backdrop-blur-sm border-2 border-yellow-500/50 animate-pulse">
+            <Card className={cn(
+                "backdrop-blur-sm border-2 animate-pulse transition-colors",
+                isTargeted
+                    ? "bg-linear-to-r from-red-900/40 to-orange-900/40 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                    : "bg-linear-to-r from-yellow-900/30 to-orange-900/30 border-yellow-500/50"
+            )}>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-yellow-300">
-                        <Shield className="size-5" />
-                        Block Opportunity!
+                    <CardTitle className={cn(
+                        "flex items-center gap-2",
+                        isTargeted ? "text-red-400 text-2xl uppercase tracking-wider" : "text-yellow-300"
+                    )}>
+                        {isTargeted ? <Target className="size-6 animate-bounce" /> : <Shield className="size-5" />}
+                        {isTargeted ? "You are Targeted!" : "Block Opportunity!"}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <p className="text-white">
-                        <span className="font-bold">{actor?.name}</span> is attempting{" "}
-                        <span className="font-bold text-yellow-400">{gameState.pendingAction.type.replace('_', ' ')}</span>
-                        {target && (
+                    <p className="text-white text-lg">
+                        {isTargeted ? (
                             <>
-                                {" "}targeting <span className="font-bold">{target.name}</span>
+                                <span className="font-bold text-red-300">{actor?.name}</span> is trying to <span className="font-bold text-red-400 underline decoration-red-500/50 underline-offset-4">{gameState.pendingAction.type.replace('_', ' ')}</span> YOU!
+                            </>
+                        ) : (
+                            <>
+                                <span className="font-bold">{actor?.name}</span> is attempting{" "}
+                                <span className="font-bold text-yellow-400">{gameState.pendingAction.type.replace('_', ' ')}</span>
+                                {target && (
+                                    <>
+                                        {" "}targeting <span className="font-bold">{target.name}</span>
+                                    </>
+                                )}
                             </>
                         )}
                     </p>
@@ -175,24 +194,49 @@ export function BlockChallengePanel({
             return null;
         }
 
+        // Check if I am the target of the action being challenged
+        const isTargetedByAction = !gameState.pendingBlock && gameState.pendingAction?.targetId === myPlayerId;
+        const canBlockLater = isTargetedByAction && gameState.pendingAction?.type && ['assassinate', 'steal'].includes(gameState.pendingAction.type);
+
         return (
-            <Card className="bg-gradient-to-r from-red-900/30 to-pink-900/30 backdrop-blur-sm border-2 border-red-500/50 animate-pulse">
+            <Card className={cn(
+                "backdrop-blur-sm border-2 animate-pulse transition-colors",
+                isTargetedByAction
+                    ? "bg-linear-to-r from-red-900/40 to-orange-900/40 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                    : "bg-linear-to-r from-red-900/30 to-pink-900/30 border-red-500/50"
+            )}>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-red-300">
-                        <Swords className="size-5" />
-                        Challenge Opportunity!
+                    <CardTitle className={cn(
+                        "flex items-center gap-2",
+                        isTargetedByAction ? "text-red-400 text-2xl uppercase tracking-wider" : "text-red-300"
+                    )}>
+                        {isTargetedByAction ? <Target className="size-6 animate-bounce" /> : <Swords className="size-5" />}
+                        {isTargetedByAction ? "You are Targeted!" : "Challenge Opportunity!"}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-start gap-3">
-                        <div className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-red-500 flex-shrink-0 shadow-lg shadow-red-500/20">
+                        <div className={cn(
+                            "relative w-16 h-16 rounded-lg overflow-hidden border-2 shrink-0 shadow-lg",
+                            isTargetedByAction ? "border-red-400 shadow-red-500/30" : "border-red-500 shadow-red-500/20"
+                        )}>
                             <Image src={CHARACTER_IMAGES[claimedCharacter]} alt={claimedCharacter} fill className="object-cover" />
                         </div>
                         <div>
-                            <p className="text-white mb-2 font-medium">{actionDescription}</p>
+                            <p className="text-white mb-2 font-medium text-lg">
+                                {isTargetedByAction ? (
+                                    <>
+                                        <span className="font-bold text-red-300">{gameState.players.find(p => p.id === targetPlayerId)?.name}</span> claims <span className="font-bold text-yellow-400">{claimedCharacter}</span> to <span className="underline decoration-red-500/50 underline-offset-4">attack YOU!</span>
+                                    </>
+                                ) : (
+                                    actionDescription
+                                )}
+                            </p>
                             <p className="text-sm text-slate-400">
-                                If you challenge and they don&apos;t have <span className="font-bold text-red-300">{claimedCharacter}</span>, they lose influence.
-                                If they do have it, YOU lose influence!
+                                {isTargetedByAction
+                                    ? "You can challenge their character claim now. If you pass, you will have a chance to BLOCK."
+                                    : `If you challenge and they don't have ${claimedCharacter}, they lose influence.`
+                                }
                             </p>
                         </div>
                     </div>
@@ -200,16 +244,19 @@ export function BlockChallengePanel({
                     <div className="space-y-2">
                         <Button
                             onClick={() => onChallenge(targetPlayerId!, claimedCharacter!)}
-                            className="w-full bg-red-600 hover:bg-red-700"
+                            className={cn(
+                                "w-full transition-all hover:scale-[1.02]",
+                                isTargetedByAction ? "bg-red-600 hover:bg-red-700 h-12 text-lg font-bold shadow-lg shadow-red-900/20" : "bg-red-600 hover:bg-red-700"
+                            )}
                         >
-                            Challenge!
+                            Challenge {claimedCharacter}
                         </Button>
                         <Button
                             onClick={onPass}
                             variant="outline"
                             className="w-full border-slate-500 text-slate-400 hover:bg-slate-800"
                         >
-                            Allow
+                            {canBlockLater ? "Pass (Proceed to Block)" : "Allow"}
                         </Button>
                     </div>
                 </CardContent>
