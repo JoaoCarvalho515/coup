@@ -398,7 +398,18 @@ export function performAction(state: GameState, action: ActionRequest): GameStat
     // Actions that can be challenged or blocked go to appropriate window
     if (requirements.character) {
         newState.phase = 'challenge_window';
-        addLog(newState, `${actor.name} claims ${requirements.character} to ${action.type}`, action.actorId, action.type);
+        let message = `${actor.name} claims ${requirements.character} to ${action.type}`;
+        if (action.targetId) {
+            const target = getPlayer(newState, action.targetId);
+            if (target) {
+                if (action.type === 'steal') {
+                    message += ` from ${target.name}`;
+                } else if (action.type === 'assassinate') {
+                    message += ` ${target.name}`;
+                }
+            }
+        }
+        addLog(newState, message, action.actorId, action.type);
     } else if (requirements.canBeBlocked) {
         newState.phase = 'block_window';
         addLog(newState, `${actor.name} attempts ${action.type}`, action.actorId, action.type);

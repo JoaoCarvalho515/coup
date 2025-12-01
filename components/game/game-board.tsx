@@ -51,7 +51,16 @@ function TargetSelectionModal({
                                 className="h-14 text-lg justify-between px-6 bg-slate-700 hover:bg-slate-600 border border-slate-600"
                             >
                                 <span>{player.name}</span>
-                                <span className="text-sm text-slate-400 font-normal">{player.cards.filter(c => !c.revealed).length} influence</span>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm text-slate-400 font-normal flex items-center gap-1">
+                                        <Coins className="size-3 text-yellow-400" />
+                                        {player.coins}
+                                    </span>
+                                    <span className="text-sm text-slate-400 font-normal flex items-center gap-1">
+                                        <Shield className="size-3 text-purple-400" />
+                                        {player.cards.filter(c => !c.revealed).length}
+                                    </span>
+                                </div>
                             </Button>
                         ))}
                     </div>
@@ -87,6 +96,10 @@ const formatLogMessage = (message: string, players: { name: string }[]) => {
         Contessa: "text-orange-400 font-bold",
     };
 
+    const playerColors = [
+        "text-red-400", "text-blue-400", "text-green-400", "text-yellow-400", "text-pink-400", "text-cyan-400"
+    ];
+
     const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     const playerNames = players.map(p => p.name).filter(Boolean);
@@ -106,8 +119,11 @@ const formatLogMessage = (message: string, players: { name: string }[]) => {
     return parts.map((part, index) => {
         if (characters.includes(part)) {
             return <span key={index} className={characterColors[part]}>{part}</span>;
-        } else if (playerNames.includes(part)) {
-            return <span key={index} className="text-yellow-300 font-bold">{part}</span>;
+        }
+        const playerIndex = players.findIndex(p => p.name === part);
+        if (playerIndex !== -1) {
+            const color = playerColors[playerIndex % playerColors.length];
+            return <span key={index} className={`${color} font-bold`}>{part}</span>;
         }
         return part;
     });
@@ -190,9 +206,6 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                             <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
                                 Coup
                             </h1>
-                            <p className="text-slate-400 text-sm">
-                                {currentPlayer.name}&apos;s Turn
-                            </p>
                         </div>
                         <Button
                             variant="outline"
@@ -463,7 +476,12 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                 {/* Game Log */}
                 <CardUI className="bg-slate-800/50 backdrop-blur-sm border-slate-700">
                     <CardContent className="p-4">
-                        <h3 className="text-lg font-semibold mb-3 text-purple-300">Game Log</h3>
+                        <div className="flex justify-between items-center mb-3">
+                            <h3 className="text-lg font-semibold text-purple-300">Game Log</h3>
+                            <span className="text-sm font-medium text-slate-400">
+                                Current Turn: <span className="text-white font-bold">{currentPlayer.name}</span>
+                            </span>
+                        </div>
                         <div className="space-y-1 max-h-48 overflow-y-auto">
                             {gameState.log.slice(-15).reverse().map((entry, index) => (
                                 <p key={index} className="text-sm text-slate-400">
