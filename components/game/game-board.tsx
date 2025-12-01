@@ -253,6 +253,35 @@ function GameLogList({ groupedLogs, players }: { groupedLogs: Record<string, Gam
     );
 }
 
+function DeckView({ count }: { count: number }) {
+    return (
+        <div className="relative w-10 h-14 md:w-12 md:h-16 group" title={`${count} cards remaining in Court Deck`}>
+            {/* Stack effect layers */}
+            {count > 1 && (
+                <div className="absolute top-0 left-0 w-full h-full bg-slate-700 rounded border border-slate-600 translate-x-1 translate-y-1" />
+            )}
+            {count > 2 && (
+                <div className="absolute top-0 left-0 w-full h-full bg-slate-700 rounded border border-slate-600 translate-x-0.5 translate-y-0.5" />
+            )}
+
+            {/* Top card */}
+            <div className="absolute top-0 left-0 w-full h-full bg-slate-800 rounded border border-slate-600 overflow-hidden shadow-lg">
+                <Image
+                    src="/textures/card-back.svg"
+                    alt="Deck"
+                    fill
+                    className="object-cover"
+                />
+            </div>
+
+            {/* Count badge */}
+            <div className="absolute -bottom-2 -right-2 bg-slate-900 text-slate-200 text-xs font-bold px-1.5 py-0.5 rounded-full border border-slate-700 shadow-sm z-10 min-w-[1.5rem] text-center">
+                {count}
+            </div>
+        </div>
+    )
+}
+
 export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, isHost }: GameBoardProps) {
     const [showRules, setShowRules] = useState(false);
     const [selectedTargetAction, setSelectedTargetAction] = useState<ActionType | null>(null);
@@ -331,14 +360,23 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                                 <BookOpen className="size-5" />
                             </Button>
                         </div>
-                        <div className="text-right">
-                            <div className="flex items-center gap-2 text-slate-400 text-sm">
-                                <Users className="size-4" />
-                                <span>{alivePlayers.length} players alive</span>
+
+                        {/* Deck View - Centered on larger screens, hidden on very small if needed or adjusted */}
+                        <div className="flex items-center gap-4">
+                            <div className="flex flex-col items-center mr-4">
+                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Deck</span>
+                                <DeckView count={gameState.courtDeck.length} />
                             </div>
-                            <p className="text-lg font-semibold capitalize text-purple-400">
-                                {gameState.phase.replace('_', ' ')}
-                            </p>
+
+                            <div className="text-right">
+                                <div className="flex items-center gap-2 text-slate-400 text-sm justify-end">
+                                    <Users className="size-4" />
+                                    <span>{alivePlayers.length} players alive</span>
+                                </div>
+                                <p className="text-lg font-semibold capitalize text-purple-400">
+                                    {gameState.phase.replace('_', ' ')}
+                                </p>
+                            </div>
                         </div>
                     </div>
 

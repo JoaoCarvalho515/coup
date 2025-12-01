@@ -40,3 +40,7 @@ pass.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# partykit
+.partykit/
+

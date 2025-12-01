@@ -744,9 +744,21 @@ export function loseInfluence(state: GameState, playerId: string, cardId?: strin
                 } else {
                     // Action was real, challenge failed, action succeeds
                     // Clear the challenge before resolving so the action can proceed
-                    addLog(state, `Challenge failed, resolving ${state.pendingAction?.type} action`, state.pendingAction?.actorId);
+                    addLog(state, `Challenge failed, action confirmed valid`, state.pendingAction?.actorId);
                     state.pendingChallenge = null;
-                    resolveAction(state);
+
+                    // Check if action can be blocked
+                    const actionType = state.pendingAction!.type;
+                    const requirements = ACTION_REQUIREMENTS[actionType];
+
+                    if (requirements.canBeBlocked) {
+                        // Action is valid, but can still be blocked
+                        state.phase = 'block_window';
+                        state.passedPlayers = [];
+                        addLog(state, `Action confirmed, moving to block window`, state.pendingAction?.actorId);
+                    } else {
+                        resolveAction(state);
+                    }
                 }
             }
         } else if (state.pendingAction) {

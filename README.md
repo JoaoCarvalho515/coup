@@ -1,6 +1,6 @@
 # Coup Game
 
-A multiplayer Coup card game built with Next.js, featuring 3D rendered cards and real-time gameplay using PartyKit.
+A multiplayer Coup card game built with Next.js, and real-time gameplay using PartyKit.
 
 ## Gameplay Preview
 
@@ -44,7 +44,6 @@ See [Rules.md](./Rules.md) for the complete game rules.
 
 - **Next.js** - Frontend framework with App Router
 - **PartyKit** - Real-time multiplayer synchronization and game state management
-- **React Three Fiber** - 3D card rendering
 - **Tailwind CSS** - Styling
 - **shadcn/ui** - UI components
 
@@ -53,7 +52,7 @@ See [Rules.md](./Rules.md) for the complete game rules.
 The game uses a client-side architecture with PartyKit handling real-time synchronization:
 - All game logic runs on the client (`lib/game-logic.ts`)
 - PartyKit manages multiplayer state synchronization
-- Players join games using unique 6-character codes
+- Players join games using unique 4-character codes
 - Game state is shared between all players in real-time
 
 ## Learn More

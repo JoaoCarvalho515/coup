@@ -2,17 +2,20 @@
 
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { Crown, Users, Eye } from "lucide-react"
+import { Crown, Users, Eye, BookOpen } from "lucide-react"
 import { useState } from "react"
 import { GameplayPreviewModal } from "./gameplay-preview-modal"
+import { RulesModal } from "./rules-modal"
 
 export function MainMenu() {
     const router = useRouter()
     const [showPreview, setShowPreview] = useState(false)
+    const [showRules, setShowRules] = useState(false)
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-50">
             <GameplayPreviewModal isOpen={showPreview} onClose={() => setShowPreview(false)} />
+            <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
             <div className="flex flex-col gap-6 w-full max-w-2xl px-12 py-16 bg-slate-900/50 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-sm">
                 <div className="text-center space-y-2 mb-8">
                     <h1 className="text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-linear-to-br from-amber-300 to-amber-600 drop-shadow-sm">
@@ -50,6 +53,16 @@ export function MainMenu() {
                 >
                     <Eye className="mr-2 h-5 w-5" />
                     See Gameplay
+                </Button>
+
+                <Button
+                    size="lg"
+                    variant="ghost"
+                    onClick={() => setShowRules(true)}
+                    className="w-full text-lg py-6 text-slate-400 hover:text-purple-400 hover:bg-slate-800/50 transition-all"
+                >
+                    <BookOpen className="mr-2 h-5 w-5" />
+                    Game Rules
                 </Button>
             </div>
         </div>
