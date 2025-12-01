@@ -182,10 +182,10 @@ function GameLogList({ groupedLogs, players }: { groupedLogs: Record<string, Gam
                         <div className="bg-slate-800/90 backdrop-blur text-slate-400 text-[10px] font-bold px-3 py-1 rounded-full border border-slate-700 uppercase tracking-wider shadow-sm">
                             Turn {turn}
                         </div>
-                        <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent"></div>
+                        <div className="h-px flex-1 bg-linear-to-r from-slate-800 to-transparent"></div>
                     </div>
                     <div className="space-y-1 pl-2">
-                        {logs.map((entry, i) => {
+                        {logs.slice().reverse().map((entry, i) => {
                             let Icon = Users;
                             let iconColor = "text-slate-500";
                             let iconBg = "bg-slate-800/50";
@@ -234,7 +234,7 @@ function GameLogList({ groupedLogs, players }: { groupedLogs: Record<string, Gam
 
                                     <div className="flex-1 min-w-0">
                                         <div className="bg-slate-900/40 border border-slate-800/60 rounded-xl p-3.5 hover:bg-slate-800/40 hover:border-slate-700/60 transition-all duration-200 group-hover:shadow-md group-hover:shadow-black/20">
-                                            <p className="text-sm text-slate-300 leading-relaxed break-words">
+                                            <p className="text-sm text-slate-300 leading-relaxed wrap-break-word">
                                                 {formatLogMessage(entry.message, players)}
                                             </p>
                                             <p className="text-[10px] text-slate-600 mt-2 font-medium uppercase tracking-wide flex items-center gap-1">

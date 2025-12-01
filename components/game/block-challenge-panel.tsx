@@ -65,8 +65,8 @@ export function BlockChallengePanel({
             <Card className={cn(
                 "backdrop-blur-sm border-2 animate-pulse transition-colors",
                 isTargeted
-                    ? "bg-linear-to-r from-red-900/40 to-orange-900/40 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-                    : "bg-linear-to-r from-yellow-900/30 to-orange-900/30 border-yellow-500/50"
+                    ? "bg-slate-950 bg-linear-to-r from-red-900/50 to-orange-900/50 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                    : "bg-slate-950 bg-linear-to-r from-yellow-900/30 to-orange-900/30 border-yellow-500/50"
             )}>
                 <CardHeader>
                     <CardTitle className={cn(
@@ -202,8 +202,8 @@ export function BlockChallengePanel({
             <Card className={cn(
                 "backdrop-blur-sm border-2 animate-pulse transition-colors",
                 isTargetedByAction
-                    ? "bg-linear-to-r from-red-900/40 to-orange-900/40 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-                    : "bg-linear-to-r from-red-900/30 to-pink-900/30 border-red-500/50"
+                    ? "bg-slate-950 bg-linear-to-r from-red-900/50 to-orange-900/50 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                    : "bg-slate-950 bg-linear-to-r from-red-900/30 to-pink-900/30 border-red-500/50"
             )}>
                 <CardHeader>
                     <CardTitle className={cn(
@@ -232,16 +232,14 @@ export function BlockChallengePanel({
                                     actionDescription
                                 )}
                             </p>
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm text-slate-300 font-medium">
                                 {isTargetedByAction
                                     ? "You can challenge their character claim now. If you pass, you will have a chance to BLOCK."
                                     : `If you challenge and they don't have ${claimedCharacter}, they lose influence.`
                                 }
                             </p>
                         </div>
-                    </div>
-
-                    <div className="space-y-2">
+                    </div>                    <div className="space-y-2">
                         <Button
                             onClick={() => onChallenge(targetPlayerId!, claimedCharacter!)}
                             className={cn(
