@@ -5,7 +5,7 @@ import { Card as CardUI, CardContent, CardHeader, CardTitle } from "@/components
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GameState, ActionType, CharacterType, Player } from "@/lib/game-logic";
+import { GameState, ActionType, CharacterType, Player, GameLogEntry } from "@/lib/game-logic";
 import { Coins, Crown, Skull, Shield, Users, BookOpen, X, History, Swords, AlertTriangle, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { RulesModal } from "./rules-modal";
@@ -172,6 +172,86 @@ function VictoryCountdown({
     );
 }
 
+function GameLogList({ groupedLogs, players }: { groupedLogs: Record<string, GameLogEntry[]>, players: Player[] }) {
+    return (
+        <div className="py-6 space-y-8">
+            {Object.entries(groupedLogs).reverse().map(([turn, logs]) => (
+                <div key={turn} className="relative">
+                    <div className="sticky top-0 z-10 flex items-center gap-4 mb-6">
+                        <div className="bg-slate-800/90 backdrop-blur text-slate-400 text-[10px] font-bold px-3 py-1 rounded-full border border-slate-700 uppercase tracking-wider shadow-sm">
+                            Turn {turn}
+                        </div>
+                        <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent"></div>
+                    </div>
+                    <div className="space-y-1 pl-2">
+                        {logs.map((entry, i) => {
+                            let Icon = Users;
+                            let iconColor = "text-slate-500";
+                            let iconBg = "bg-slate-800/50";
+
+                            // Determine icon based on content
+                            if (entry.message.includes("Game started")) {
+                                Icon = Crown;
+                                iconColor = "text-yellow-400";
+                                iconBg = "bg-yellow-500/10";
+                            } else if (entry.message.includes("eliminated")) {
+                                Icon = Skull;
+                                iconColor = "text-red-400";
+                                iconBg = "bg-red-500/10";
+                            } else if (entry.message.includes("challenges")) {
+                                Icon = AlertTriangle;
+                                iconColor = "text-orange-400";
+                                iconBg = "bg-orange-500/10";
+                            } else if (entry.message.includes("blocks")) {
+                                Icon = Shield;
+                                iconColor = "text-blue-400";
+                                iconBg = "bg-blue-500/10";
+                            } else if (entry.message.includes("income") || entry.message.includes("foreign_aid") || entry.message.includes("tax") || entry.message.includes("steal")) {
+                                Icon = Coins;
+                                iconColor = "text-emerald-400";
+                                iconBg = "bg-emerald-500/10";
+                            } else if (entry.message.includes("assassinate") || entry.message.includes("Coup")) {
+                                Icon = Swords;
+                                iconColor = "text-red-400";
+                                iconBg = "bg-red-500/10";
+                            } else if (entry.message.includes("exchange")) {
+                                Icon = RefreshCw;
+                                iconColor = "text-indigo-400";
+                                iconBg = "bg-indigo-500/10";
+                            }
+
+                            return (
+                                <div key={i} className="group flex gap-4 relative pb-6 last:pb-0">
+                                    {/* Timeline line */}
+                                    {i !== logs.length - 1 && (
+                                        <div className="absolute left-[19px] top-10 bottom-0 w-px bg-slate-800 group-last:hidden" />
+                                    )}
+
+                                    <div className={`relative z-10 shrink-0 size-10 rounded-full flex items-center justify-center border border-slate-800 ${iconBg} shadow-sm`}>
+                                        <Icon className={`size-5 ${iconColor}`} />
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="bg-slate-900/40 border border-slate-800/60 rounded-xl p-3.5 hover:bg-slate-800/40 hover:border-slate-700/60 transition-all duration-200 group-hover:shadow-md group-hover:shadow-black/20">
+                                            <p className="text-sm text-slate-300 leading-relaxed break-words">
+                                                {formatLogMessage(entry.message, players)}
+                                            </p>
+                                            <p className="text-[10px] text-slate-600 mt-2 font-medium uppercase tracking-wide flex items-center gap-1">
+                                                <History className="size-3" />
+                                                {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, isHost }: GameBoardProps) {
     const [showRules, setShowRules] = useState(false);
     const [selectedTargetAction, setSelectedTargetAction] = useState<ActionType | null>(null);
@@ -198,7 +278,7 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
     }, {} as Record<number, typeof gameState.log>);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-6">
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col lg:flex-row overflow-hidden">
             <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
             <TargetSelectionModal
                 isOpen={!!selectedTargetAction}
@@ -208,391 +288,340 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                 players={alivePlayers.filter(p => p.id !== myPlayerId)}
             />
 
-            {/* Game Log Sidepanel */}
-            <Sheet>
-                <SheetTrigger asChild>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="fixed bottom-4 right-4 z-50 rounded-full h-14 w-14 shadow-xl bg-slate-800 border-purple-500 text-purple-400 hover:bg-slate-700 hover:text-purple-300"
-                    >
-                        <History className="size-6" />
-                    </Button>
-                </SheetTrigger>
-                <SheetContent className="bg-slate-950 border-l-slate-800 text-slate-200 w-[400px] sm:w-[540px] p-0 flex flex-col shadow-2xl">
-                    <SheetHeader className="p-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-purple-500/20 p-2.5 rounded-xl border border-purple-500/20">
-                                <History className="size-5 text-purple-400" />
-                            </div>
+            {/* Main Game Area */}
+            <div className="flex-1 h-screen overflow-y-auto p-4 md:p-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <div className="max-w-5xl mx-auto space-y-6">
+                    {/* Header */}
+                    <div className="flex justify-between items-center bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700">
+                        <div className="flex items-center gap-4">
                             <div>
-                                <SheetTitle className="text-purple-100 text-xl">Game Log</SheetTitle>
-                                <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">History & Events</p>
+                                <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
+                                    Coup
+                                </h1>
                             </div>
-                        </div>
-                    </SheetHeader>
-                    <ScrollArea className="flex-1 px-6">
-                        <div className="py-6 space-y-8">
-                            {Object.entries(groupedLogs).reverse().map(([turn, logs]) => (
-                                <div key={turn} className="relative">
-                                    <div className="sticky top-0 z-10 flex items-center gap-4 mb-6">
-                                        <div className="bg-slate-800/90 backdrop-blur text-slate-400 text-[10px] font-bold px-3 py-1 rounded-full border border-slate-700 uppercase tracking-wider shadow-sm">
-                                            Turn {turn}
-                                        </div>
-                                        <div className="h-px flex-1 bg-gradient-to-r from-slate-800 to-transparent"></div>
-                                    </div>
-                                    <div className="space-y-1 pl-2">
-                                        {logs.map((entry, i) => {
-                                            let Icon = Users;
-                                            let iconColor = "text-slate-500";
-                                            let iconBg = "bg-slate-800/50";
-
-                                            // Determine icon based on content
-                                            if (entry.message.includes("Game started")) {
-                                                Icon = Crown;
-                                                iconColor = "text-yellow-400";
-                                                iconBg = "bg-yellow-500/10";
-                                            } else if (entry.message.includes("eliminated")) {
-                                                Icon = Skull;
-                                                iconColor = "text-red-400";
-                                                iconBg = "bg-red-500/10";
-                                            } else if (entry.message.includes("challenges")) {
-                                                Icon = AlertTriangle;
-                                                iconColor = "text-orange-400";
-                                                iconBg = "bg-orange-500/10";
-                                            } else if (entry.message.includes("blocks")) {
-                                                Icon = Shield;
-                                                iconColor = "text-blue-400";
-                                                iconBg = "bg-blue-500/10";
-                                            } else if (entry.message.includes("income") || entry.message.includes("foreign_aid") || entry.message.includes("tax") || entry.message.includes("steal")) {
-                                                Icon = Coins;
-                                                iconColor = "text-emerald-400";
-                                                iconBg = "bg-emerald-500/10";
-                                            } else if (entry.message.includes("assassinate") || entry.message.includes("Coup")) {
-                                                Icon = Swords;
-                                                iconColor = "text-red-400";
-                                                iconBg = "bg-red-500/10";
-                                            } else if (entry.message.includes("exchange")) {
-                                                Icon = RefreshCw;
-                                                iconColor = "text-indigo-400";
-                                                iconBg = "bg-indigo-500/10";
-                                            }
-
-                                            return (
-                                                <div key={i} className="group flex gap-4 relative pb-6 last:pb-0">
-                                                    {/* Timeline line */}
-                                                    {i !== logs.length - 1 && (
-                                                        <div className="absolute left-[19px] top-10 bottom-0 w-px bg-slate-800 group-last:hidden" />
-                                                    )}
-
-                                                    <div className={`relative z-10 shrink-0 size-10 rounded-full flex items-center justify-center border border-slate-800 ${iconBg} shadow-sm`}>
-                                                        <Icon className={`size-5 ${iconColor}`} />
-                                                    </div>
-
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="bg-slate-900/40 border border-slate-800/60 rounded-xl p-3.5 hover:bg-slate-800/40 hover:border-slate-700/60 transition-all duration-200 group-hover:shadow-md group-hover:shadow-black/20">
-                                                            <p className="text-sm text-slate-300 leading-relaxed break-words">
-                                                                {formatLogMessage(entry.message, gameState.players)}
-                                                            </p>
-                                                            <p className="text-[10px] text-slate-600 mt-2 font-medium uppercase tracking-wide flex items-center gap-1">
-                                                                <History className="size-3" />
-                                                                {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </ScrollArea>
-                </SheetContent>
-            </Sheet>
-
-            <div className="max-w-7xl mx-auto space-y-6">
-                {/* Header */}
-                <div className="flex justify-between items-center bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700">
-                    <div className="flex items-center gap-4">
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                                Coup
-                            </h1>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowRules(true)}
-                            className="hidden md:flex gap-2 border-purple-500/50 text-purple-300 bg-transparent hover:text-white hover:bg-purple-900/50"
-                        >
-                            <BookOpen className="size-4" />
-                            Rules
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setShowRules(true)}
-                            className="md:hidden text-purple-300 hover:text-white hover:bg-purple-900/50"
-                        >
-                            <BookOpen className="size-5" />
-                        </Button>
-                    </div>
-                    <div className="text-right">
-                        <div className="flex items-center gap-2 text-slate-400 text-sm">
-                            <Users className="size-4" />
-                            <span>{alivePlayers.length} players alive</span>
-                        </div>
-                        <p className="text-lg font-semibold capitalize text-purple-400">
-                            {gameState.phase.replace('_', ' ')}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Players Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[
-                        gameState.players.find(p => p.id === myPlayerId)!,
-                        ...gameState.players.filter(p => p.id !== myPlayerId)
-                    ].filter(Boolean).map((player) => {
-                        const isMe = player.id === myPlayerId;
-                        const isCurrentTurn = player.id === currentPlayer.id;
-
-                        return (
-                            <div
-                                key={player.id}
-                                className={`rounded-lg p-4 transition-all relative overflow-hidden ${isMe
-                                    ? "bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-2 border-purple-500/50 shadow-lg shadow-purple-500/20"
-                                    : isCurrentTurn
-                                        ? "bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20"
-                                        : player.isAlive
-                                            ? "bg-slate-800/50 border border-slate-700"
-                                            : "bg-slate-900/50 border border-slate-800 opacity-50"
-                                    }`}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowRules(true)}
+                                className="hidden md:flex gap-2 border-purple-500/50 text-purple-300 bg-transparent hover:text-white hover:bg-purple-900/50"
                             >
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        {isMe ? (
-                                            <div className="bg-purple-500/20 p-2 rounded-full">
-                                                <Shield className="size-5 text-purple-400" />
-                                            </div>
-                                        ) : isCurrentTurn ? (
-                                            <div className="bg-blue-500/20 p-2 rounded-full">
-                                                <Crown className="size-5 text-blue-400" />
-                                            </div>
-                                        ) : (
-                                            <div className="bg-slate-700/50 p-2 rounded-full">
-                                                <Users className="size-5 text-slate-400" />
-                                            </div>
-                                        )}
-                                        <div>
-                                            <h3 className="text-lg font-bold flex items-center gap-2">
-                                                {player.name}
-                                                {isMe && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">You</span>}
-                                            </h3>
-                                            {!player.isAlive && (
-                                                <span className="text-xs text-red-400 font-semibold">Eliminated</span>
-                                            )}
-                                            {player.isAlive && isCurrentTurn && !isMe && (
-                                                <span className="text-xs text-blue-400">Current Turn</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full border border-white/5">
-                                        <Coins className="size-4 text-yellow-400" />
-                                        <span className="text-xl font-bold text-yellow-400">{player.coins}</span>
-                                    </div>
-                                </div>
+                                <BookOpen className="size-4" />
+                                Rules
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowRules(true)}
+                                className="md:hidden text-purple-300 hover:text-white hover:bg-purple-900/50"
+                            >
+                                <BookOpen className="size-5" />
+                            </Button>
+                        </div>
+                        <div className="text-right">
+                            <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                <Users className="size-4" />
+                                <span>{alivePlayers.length} players alive</span>
+                            </div>
+                            <p className="text-lg font-semibold capitalize text-purple-400">
+                                {gameState.phase.replace('_', ' ')}
+                            </p>
+                        </div>
+                    </div>
 
-                                <div className="flex gap-3 justify-center">
-                                    {player.cards.map((card) => (
-                                        <div
-                                            key={card.id}
-                                            className={`w-28 h-40 rounded-lg transition-all relative group overflow-hidden shadow-xl ${card.revealed
-                                                ? "opacity-60 grayscale"
-                                                : isMe
-                                                    ? "hover:scale-105 hover:z-10 hover:shadow-purple-500/50 ring-2 ring-purple-500/50"
-                                                    : "ring-1 ring-slate-600"
-                                                }`}
-                                            title={isMe && !card.revealed ? card.character : "Hidden Card"}
-                                        >
-                                            {card.revealed ? (
-                                                <div className="w-full h-full relative bg-slate-900 flex flex-col items-center justify-center">
-                                                    <Image
-                                                        src={CHARACTER_IMAGES[card.character]}
-                                                        alt={card.character}
-                                                        fill
-                                                        className="object-cover opacity-30"
-                                                    />
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/40">
-                                                        <Skull className="size-8 text-red-500 mb-1 drop-shadow-lg" />
-                                                        <span className="text-xs font-bold text-red-500 bg-black/70 px-2 py-1 rounded border border-red-500/30">{card.character}</span>
-                                                    </div>
+                    {/* Players Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[
+                            gameState.players.find(p => p.id === myPlayerId)!,
+                            ...gameState.players.filter(p => p.id !== myPlayerId)
+                        ].filter(Boolean).map((player) => {
+                            const isMe = player.id === myPlayerId;
+                            const isCurrentTurn = player.id === currentPlayer.id;
+
+                            return (
+                                <div
+                                    key={player.id}
+                                    className={`rounded-lg p-4 transition-all relative overflow-hidden ${isMe
+                                        ? "bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-2 border-purple-500/50 shadow-lg shadow-purple-500/20"
+                                        : isCurrentTurn
+                                            ? "bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20"
+                                            : player.isAlive
+                                                ? "bg-slate-800/50 border border-slate-700"
+                                                : "bg-slate-900/50 border border-slate-800 opacity-50"
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            {isMe ? (
+                                                <div className="bg-purple-500/20 p-2 rounded-full">
+                                                    <Shield className="size-5 text-purple-400" />
                                                 </div>
-                                            ) : isMe ? (
-                                                <div className="w-full h-full relative">
-                                                    <Image
-                                                        src={CHARACTER_IMAGES[card.character]}
-                                                        alt={card.character}
-                                                        fill
-                                                        className="object-cover"
-                                                    />
-                                                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2 pt-6">
-                                                        <p className="text-center text-white font-bold text-sm shadow-black drop-shadow-md">{card.character}</p>
-                                                    </div>
+                                            ) : isCurrentTurn ? (
+                                                <div className="bg-blue-500/20 p-2 rounded-full">
+                                                    <Crown className="size-5 text-blue-400" />
                                                 </div>
                                             ) : (
-                                                <div className="w-full h-full relative bg-slate-800">
-                                                    <Image
-                                                        src="/textures/card-back.svg"
-                                                        alt="Hidden Card"
-                                                        fill
-                                                        className="object-cover"
-                                                    />
+                                                <div className="bg-slate-700/50 p-2 rounded-full">
+                                                    <Users className="size-5 text-slate-400" />
                                                 </div>
                                             )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Action Area / Status Messages */}
-                <div className="space-y-4">
-                    {isMyTurn && gameState.phase === 'action' && myPlayer.isAlive && (
-                        <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 backdrop-blur-sm rounded-lg p-6 border-2 border-purple-500/50 shadow-xl">
-                            <h2 className="text-2xl font-bold mb-4 text-purple-300 flex items-center gap-2">
-                                <Crown className="size-6" />
-                                Choose Your Action
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                                {/* Basic Actions */}
-                                <Button
-                                    onClick={() => onAction('income')}
-                                    className="h-auto py-4 flex flex-col items-start bg-green-600 hover:bg-green-700 transition-all hover:scale-105"
-                                >
-                                    <span className="text-lg font-bold">Income</span>
-                                    <span className="text-xs opacity-80">+1 coin (safe)</span>
-                                </Button>
-
-                                <Button
-                                    onClick={() => onAction('foreign_aid')}
-                                    className="h-auto py-4 flex flex-col items-start bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105"
-                                    disabled={myPlayer.coins >= 10}
-                                >
-                                    <span className="text-lg font-bold">Foreign Aid</span>
-                                    <span className="text-xs opacity-80">+2 coins (blockable)</span>
-                                </Button>
-
-                                {/* Character Actions */}
-                                <Button
-                                    onClick={() => onAction('tax')}
-                                    className="h-auto py-4 flex flex-col items-start bg-purple-600 hover:bg-purple-700 transition-all hover:scale-105"
-                                    disabled={myPlayer.coins >= 10}
-                                >
-                                    <span className="text-lg font-bold">Tax (Duke)</span>
-                                    <span className="text-xs opacity-80">+3 coins</span>
-                                </Button>
-
-                                <Button
-                                    onClick={() => onAction('exchange')}
-                                    className="h-auto py-4 flex flex-col items-start bg-indigo-600 hover:bg-indigo-700 transition-all hover:scale-105"
-                                    disabled={myPlayer.coins >= 10}
-                                >
-                                    <span className="text-lg font-bold">Exchange (Ambassador)</span>
-                                    <span className="text-xs opacity-80">Swap cards</span>
-                                </Button>
-                            </div>
-
-                            {/* Targeted Actions */}
-                            {alivePlayers.length > 1 && (
-                                <div className="mt-6 space-y-4">
-                                    <h3 className="text-lg font-semibold text-purple-300 border-b border-purple-500/30 pb-2">Targeted Actions</h3>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        {/* Steal */}
-                                        <Button
-                                            onClick={() => setSelectedTargetAction('steal')}
-                                            className="h-auto py-4 flex flex-col items-start bg-cyan-900/30 border border-cyan-500 hover:bg-cyan-800 hover:text-white transition-colors"
-                                            disabled={myPlayer.coins >= 10}
-                                        >
-                                            <span className="text-lg font-bold text-cyan-400">Steal (Captain)</span>
-                                            <span className="text-xs opacity-80 text-left">Take 2 coins from opponent</span>
-                                        </Button>
-
-                                        {/* Assassinate */}
-                                        <Button
-                                            onClick={() => setSelectedTargetAction('assassinate')}
-                                            className="h-auto py-4 flex flex-col items-start bg-red-900/30 border border-red-500 hover:bg-red-800 hover:text-white transition-colors"
-                                            disabled={myPlayer.coins >= 10 || myPlayer.coins < 3}
-                                        >
-                                            <span className="text-lg font-bold text-red-400">Assassinate (Assassin)</span>
-                                            <span className="text-xs opacity-80 text-left">Pay 3 coins to kill influence</span>
-                                        </Button>
-
-                                        {/* Coup */}
-                                        <Button
-                                            onClick={() => setSelectedTargetAction('coup')}
-                                            className={`h-auto py-4 flex flex-col items-start border border-orange-500 transition-colors ${myPlayer.coins >= 10
-                                                ? "bg-orange-600 hover:bg-orange-700 text-white animate-pulse"
-                                                : "bg-orange-900/30 hover:bg-orange-800 hover:text-white"
-                                                }`}
-                                            disabled={myPlayer.coins < 7}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-lg font-bold text-orange-400">Coup</span>
-                                                {myPlayer.coins >= 10 && (
-                                                    <span className="text-xs bg-yellow-500 text-black px-1 rounded font-bold">REQUIRED</span>
+                                            <div>
+                                                <h3 className="text-lg font-bold flex items-center gap-2">
+                                                    {player.name}
+                                                    {isMe && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">You</span>}
+                                                </h3>
+                                                {!player.isAlive && (
+                                                    <span className="text-xs text-red-400 font-semibold">Eliminated</span>
+                                                )}
+                                                {player.isAlive && isCurrentTurn && !isMe && (
+                                                    <span className="text-xs text-blue-400">Current Turn</span>
                                                 )}
                                             </div>
-                                            <span className="text-xs opacity-80 text-left">Pay 7 coins to kill influence (Unblockable)</span>
-                                        </Button>
+                                        </div>
+                                        <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full border border-white/5">
+                                            <Coins className="size-4 text-yellow-400" />
+                                            <span className="text-xl font-bold text-yellow-400">{player.coins}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 justify-center">
+                                        {player.cards.map((card) => (
+                                            <div
+                                                key={card.id}
+                                                className={`w-28 h-40 rounded-lg transition-all relative group overflow-hidden shadow-xl ${card.revealed
+                                                    ? "opacity-60 grayscale"
+                                                    : isMe
+                                                        ? "hover:scale-105 hover:z-10 hover:shadow-purple-500/50 ring-2 ring-purple-500/50"
+                                                        : "ring-1 ring-slate-600"
+                                                    }`}
+                                                title={isMe && !card.revealed ? card.character : "Hidden Card"}
+                                            >
+                                                {card.revealed ? (
+                                                    <div className="w-full h-full relative bg-slate-900 flex flex-col items-center justify-center">
+                                                        <Image
+                                                            src={CHARACTER_IMAGES[card.character]}
+                                                            alt={card.character}
+                                                            fill
+                                                            className="object-cover opacity-30"
+                                                        />
+                                                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/40">
+                                                            <Skull className="size-8 text-red-500 mb-1 drop-shadow-lg" />
+                                                            <span className="text-xs font-bold text-red-500 bg-black/70 px-2 py-1 rounded border border-red-500/30">{card.character}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : isMe ? (
+                                                    <div className="w-full h-full relative">
+                                                        <Image
+                                                            src={CHARACTER_IMAGES[card.character]}
+                                                            alt={card.character}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2 pt-6">
+                                                            <p className="text-center text-white font-bold text-sm shadow-black drop-shadow-md">{card.character}</p>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-full h-full relative bg-slate-800">
+                                                        <Image
+                                                            src="/textures/card-back.svg"
+                                                            alt="Hidden Card"
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                    )}
+                            );
+                        })}
+                    </div>
 
-                    {/* Waiting Message */}
-                    {!isMyTurn && myPlayer.isAlive && gameState.phase === 'action' && (
-                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-8 text-center border border-slate-700 shadow-lg">
-                            <div className="flex flex-col items-center gap-3">
-                                <div className="size-12 rounded-full bg-slate-700 flex items-center justify-center animate-pulse">
-                                    <Users className="size-6 text-slate-400" />
+                    {/* Action Area / Status Messages */}
+                    <div className="space-y-4">
+                        {isMyTurn && gameState.phase === 'action' && myPlayer.isAlive && (
+                            <div className="bg-gradient-to-r from-purple-900/30 to-pink-900/30 backdrop-blur-sm rounded-lg p-6 border-2 border-purple-500/50 shadow-xl">
+                                <h2 className="text-2xl font-bold mb-4 text-purple-300 flex items-center gap-2">
+                                    <Crown className="size-6" />
+                                    Choose Your Action
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                    {/* Basic Actions */}
+                                    <Button
+                                        onClick={() => onAction('income')}
+                                        className="h-auto py-4 flex flex-col items-start bg-green-600 hover:bg-green-700 transition-all hover:scale-105"
+                                    >
+                                        <span className="text-lg font-bold">Income</span>
+                                        <span className="text-xs opacity-80">+1 coin (safe)</span>
+                                    </Button>
+
+                                    <Button
+                                        onClick={() => onAction('foreign_aid')}
+                                        className="h-auto py-4 flex flex-col items-start bg-blue-600 hover:bg-blue-700 transition-all hover:scale-105"
+                                        disabled={myPlayer.coins >= 10}
+                                    >
+                                        <span className="text-lg font-bold">Foreign Aid</span>
+                                        <span className="text-xs opacity-80">+2 coins (blockable)</span>
+                                    </Button>
+
+                                    {/* Character Actions */}
+                                    <Button
+                                        onClick={() => onAction('tax')}
+                                        className="h-auto py-4 flex flex-col items-start bg-purple-600 hover:bg-purple-700 transition-all hover:scale-105"
+                                        disabled={myPlayer.coins >= 10}
+                                    >
+                                        <span className="text-lg font-bold">Tax (Duke)</span>
+                                        <span className="text-xs opacity-80">+3 coins</span>
+                                    </Button>
+
+                                    <Button
+                                        onClick={() => onAction('exchange')}
+                                        className="h-auto py-4 flex flex-col items-start bg-indigo-600 hover:bg-indigo-700 transition-all hover:scale-105"
+                                        disabled={myPlayer.coins >= 10}
+                                    >
+                                        <span className="text-lg font-bold">Exchange (Ambassador)</span>
+                                        <span className="text-xs opacity-80">Swap cards</span>
+                                    </Button>
                                 </div>
-                                <p className="text-xl text-slate-300">
-                                    Waiting for <span className="font-bold text-white text-2xl">{currentPlayer.name}</span> to take their turn...
-                                </p>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* Waiting for Influence Loss */}
-                    {gameState.phase === 'lose_influence' && gameState.pendingInfluenceLoss !== myPlayerId && myPlayer.isAlive && (
-                        <div className="bg-red-900/20 backdrop-blur-sm rounded-lg p-8 text-center border-2 border-red-500/50 shadow-lg animate-pulse">
-                            <div className="flex flex-col items-center gap-3">
-                                <Skull className="size-12 text-red-400" />
-                                <p className="text-xl text-red-300">
-                                    Waiting for{" "}
-                                    <span className="font-bold text-white text-2xl">
-                                        {gameState.players.find(p => p.id === gameState.pendingInfluenceLoss)?.name}
-                                    </span>
-                                    {" "}to choose a card to reveal...
-                                </p>
+                                {/* Targeted Actions */}
+                                {alivePlayers.length > 1 && (
+                                    <div className="mt-6 space-y-4">
+                                        <h3 className="text-lg font-semibold text-purple-300 border-b border-purple-500/30 pb-2">Targeted Actions</h3>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            {/* Steal */}
+                                            <Button
+                                                onClick={() => setSelectedTargetAction('steal')}
+                                                className="h-auto py-4 flex flex-col items-start bg-cyan-900/30 border border-cyan-500 hover:bg-cyan-800 hover:text-white transition-colors"
+                                                disabled={myPlayer.coins >= 10}
+                                            >
+                                                <span className="text-lg font-bold text-cyan-400">Steal (Captain)</span>
+                                                <span className="text-xs opacity-80 text-left">Take 2 coins from opponent</span>
+                                            </Button>
+
+                                            {/* Assassinate */}
+                                            <Button
+                                                onClick={() => setSelectedTargetAction('assassinate')}
+                                                className="h-auto py-4 flex flex-col items-start bg-red-900/30 border border-red-500 hover:bg-red-800 hover:text-white transition-colors"
+                                                disabled={myPlayer.coins >= 10 || myPlayer.coins < 3}
+                                            >
+                                                <span className="text-lg font-bold text-red-400">Assassinate (Assassin)</span>
+                                                <span className="text-xs opacity-80 text-left">Pay 3 coins to kill influence</span>
+                                            </Button>
+
+                                            {/* Coup */}
+                                            <Button
+                                                onClick={() => setSelectedTargetAction('coup')}
+                                                className={`h-auto py-4 flex flex-col items-start border border-orange-500 transition-colors ${myPlayer.coins >= 10
+                                                    ? "bg-orange-600 hover:bg-orange-700 text-white animate-pulse"
+                                                    : "bg-orange-900/30 hover:bg-orange-800 hover:text-white"
+                                                    }`}
+                                                disabled={myPlayer.coins < 7}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-lg font-bold text-orange-400">Coup</span>
+                                                    {myPlayer.coins >= 10 && (
+                                                        <span className="text-xs bg-yellow-500 text-black px-1 rounded font-bold">REQUIRED</span>
+                                                    )}
+                                                </div>
+                                                <span className="text-xs opacity-80 text-left">Pay 7 coins to kill influence (Unblockable)</span>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        </div>
+                        )}
+
+                        {/* Waiting Message */}
+                        {!isMyTurn && myPlayer.isAlive && gameState.phase === 'action' && (
+                            <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-8 text-center border border-slate-700 shadow-lg">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="size-12 rounded-full bg-slate-700 flex items-center justify-center animate-pulse">
+                                        <Users className="size-6 text-slate-400" />
+                                    </div>
+                                    <p className="text-xl text-slate-300">
+                                        Waiting for <span className="font-bold text-white text-2xl">{currentPlayer.name}</span> to take their turn...
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Waiting for Influence Loss */}
+                        {gameState.phase === 'lose_influence' && gameState.pendingInfluenceLoss !== myPlayerId && myPlayer.isAlive && (
+                            <div className="bg-red-900/20 backdrop-blur-sm rounded-lg p-8 text-center border-2 border-red-500/50 shadow-lg animate-pulse">
+                                <div className="flex flex-col items-center gap-3">
+                                    <Skull className="size-12 text-red-400" />
+                                    <p className="text-xl text-red-300">
+                                        Waiting for{" "}
+                                        <span className="font-bold text-white text-2xl">
+                                            {gameState.players.find(p => p.id === gameState.pendingInfluenceLoss)?.name}
+                                        </span>
+                                        {" "}to choose a card to reveal...
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Winner Display */}
+                    {gameState.winner && (
+                        <VictoryCountdown
+                            winnerName={gameState.players.find(p => p.id === gameState.winner)?.name || "Unknown Player"}
+                            onReturnToLobby={onReturnToLobby}
+                        />
                     )}
                 </div>
+            </div>
 
-                {/* Winner Display */}
-                {gameState.winner && (
-                    <VictoryCountdown
-                        winnerName={gameState.players.find(p => p.id === gameState.winner)?.name || "Unknown Player"}
-                        onReturnToLobby={onReturnToLobby}
-                    />
-                )}
+            {/* Right Sidebar (Desktop) */}
+            <div className="hidden lg:flex w-80 xl:w-96 flex-col border-l border-slate-800 bg-slate-900/50 backdrop-blur-sm h-screen overflow-hidden">
+                <div className="p-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-purple-500/20 p-2.5 rounded-xl border border-purple-500/20">
+                            <History className="size-5 text-purple-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-purple-100 text-xl font-bold">Game Log</h2>
+                            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">History & Events</p>
+                        </div>
+                    </div>
+                </div>
+                <ScrollArea className="flex-1 px-6 h-full">
+                    <GameLogList groupedLogs={groupedLogs} players={gameState.players} />
+                </ScrollArea>
+            </div>
+
+            {/* Mobile Toggle (Sheet) */}
+            <div className="lg:hidden">
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="fixed bottom-4 right-4 z-50 rounded-full h-14 w-14 shadow-xl bg-slate-800 border-purple-500 text-purple-400 hover:bg-slate-700 hover:text-purple-300"
+                        >
+                            <History className="size-6" />
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent className="bg-slate-950 border-l-slate-800 text-slate-200 w-[400px] sm:w-[540px] p-0 flex flex-col shadow-2xl">
+                        <SheetHeader className="p-6 border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="bg-purple-500/20 p-2.5 rounded-xl border border-purple-500/20">
+                                    <History className="size-5 text-purple-400" />
+                                </div>
+                                <div>
+                                    <SheetTitle className="text-purple-100 text-xl">Game Log</SheetTitle>
+                                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-0.5">History & Events</p>
+                                </div>
+                            </div>
+                        </SheetHeader>
+                        <ScrollArea className="flex-1 px-6">
+                            <GameLogList groupedLogs={groupedLogs} players={gameState.players} />
+                        </ScrollArea>
+                    </SheetContent>
+                </Sheet>
             </div>
         </div>
     );
