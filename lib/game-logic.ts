@@ -562,6 +562,9 @@ export function challengeAction(
     const challenger = getPlayer(newState, challenge.challengerId)!;
     const target = getPlayer(newState, challenge.targetPlayerId)!;
 
+    // Store the challenge so we know how to resolve after influence loss
+    newState.pendingChallenge = challenge;
+
     addLog(newState, `${challenger.name} challenges ${target.name}'s ${challenge.claimedCharacter}`, challenge.challengerId);
 
     // Check if target has the claimed character
