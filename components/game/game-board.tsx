@@ -429,30 +429,30 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                                         </div>
                                     )}
                                     <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 min-w-0">
                                             {isTargeted ? (
-                                                <div className="bg-red-500/20 p-2 rounded-full animate-pulse">
+                                                <div className="bg-red-500/20 p-2 rounded-full animate-pulse shrink-0">
                                                     <Target className="size-5 text-red-400" />
                                                 </div>
                                             ) : isMe ? (
-                                                <div className="bg-purple-500/20 p-2 rounded-full">
+                                                <div className="bg-purple-500/20 p-2 rounded-full shrink-0">
                                                     <Shield className="size-5 text-purple-400" />
                                                 </div>
                                             ) : isCurrentTurn ? (
-                                                <div className="bg-blue-500/20 p-2 rounded-full">
+                                                <div className="bg-blue-500/20 p-2 rounded-full shrink-0">
                                                     <Crown className="size-5 text-blue-400" />
                                                 </div>
                                             ) : (
-                                                <div className="bg-slate-700/50 p-2 rounded-full">
+                                                <div className="bg-slate-700/50 p-2 rounded-full shrink-0">
                                                     <Users className="size-5 text-slate-400" />
                                                 </div>
                                             )}
-                                            <div>
+                                            <div className="min-w-0">
                                                 <h3 className="text-lg font-bold flex items-center gap-2">
-                                                    {player.name}
-                                                    {isMe && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">You</span>}
+                                                    <span className="truncate">{player.name}</span>
+                                                    {isMe && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30 shrink-0">You</span>}
                                                     {isWaitingForAction && (
-                                                        <span className="flex items-center gap-1 text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full border border-yellow-500/30 animate-pulse">
+                                                        <span className="flex items-center gap-1 text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full border border-yellow-500/30 animate-pulse shrink-0">
                                                             <Hourglass className="size-3" />
                                                             Waiting
                                                         </span>

@@ -135,6 +135,7 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
                                     onChange={(e) => setPlayerName(e.target.value)}
                                     onKeyDown={(e) => e.key === "Enter" && handleJoin()}
                                     className="text-center text-xl h-14 bg-slate-950/50 border-slate-700 focus-visible:ring-amber-500/50 text-amber-100 placeholder:text-slate-700"
+                                    maxLength={18}
                                 />
                             </div>
                             <Button
@@ -224,6 +225,7 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
                                             }}
                                             className="h-10 bg-slate-900 border-slate-700 text-white"
                                             autoFocus
+                                            maxLength={18}
                                         />
                                         <div className="flex gap-2">
                                             <Button
