@@ -75,6 +75,27 @@ export function GamePlay({
         gameState.pendingInfluenceLoss === myPlayerId &&
         myPlayer.cards.filter(c => !c.revealed).length > 0;
 
+    // Determine reason for influence loss
+    let loseInfluenceDescription = "Choose one of your cards to reveal.";
+    if (needsToLoseInfluence) {
+        if (gameState.pendingChallenge) {
+            if (gameState.pendingChallenge.challengerId === myPlayerId) {
+                const targetName = gameState.players.find(p => p.id === gameState.pendingChallenge?.targetPlayerId)?.name;
+                loseInfluenceDescription = `Your challenge against ${targetName} failed! You must lose an influence.`;
+            } else {
+                const challengerName = gameState.players.find(p => p.id === gameState.pendingChallenge?.challengerId)?.name;
+                loseInfluenceDescription = `You were successfully challenged by ${challengerName}! You must lose an influence.`;
+            }
+        } else if (gameState.pendingAction) {
+            const actorName = gameState.players.find(p => p.id === gameState.pendingAction?.actorId)?.name;
+            if (gameState.pendingAction.type === 'coup') {
+                loseInfluenceDescription = `You were Couped by ${actorName}! You must lose an influence.`;
+            } else if (gameState.pendingAction.type === 'assassinate') {
+                loseInfluenceDescription = `You were Assassinated by ${actorName}! You must lose an influence.`;
+            }
+        }
+    }
+
     // Check if player needs to exchange cards (Ambassador)
     const needsToExchange = myPlayer &&
         gameState.phase === 'exchange' &&
@@ -135,7 +156,7 @@ export function GamePlay({
                     key={`lose-influence-${myPlayer!.cards.filter(c => !c.revealed).length}`}
                     cards={myPlayer!.cards}
                     title="Lose Influence"
-                    description="Choose one of your cards to reveal."
+                    description={loseInfluenceDescription}
                     selectCount={1}
                     onConfirm={(cardIds) => onLoseInfluence(cardIds[0])}
                 />
