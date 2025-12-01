@@ -344,10 +344,7 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
 
                     {/* Players Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {[
-                            gameState.players.find(p => p.id === myPlayerId)!,
-                            ...gameState.players.filter(p => p.id !== myPlayerId)
-                        ].filter(Boolean).map((player) => {
+                        {gameState.players.map((player) => {
                             const isMe = player.id === myPlayerId;
                             const isCurrentTurn = player.id === currentPlayer.id;
                             const isTargeted = gameState.pendingAction?.targetId === player.id;
