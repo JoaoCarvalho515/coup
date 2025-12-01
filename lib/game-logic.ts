@@ -190,10 +190,13 @@ export function initializeGame(playersList: { id: string; name: string }[]): Gam
         });
     });
 
+    // Randomize starting player
+    const startingPlayerIndex = Math.floor(Math.random() * players.length);
+
     return {
         id: `game-${Date.now()}`,
         players,
-        currentPlayerIndex: 0,
+        currentPlayerIndex: startingPlayerIndex,
         courtDeck: deck,
         discardPile: [],
         phase: 'action',

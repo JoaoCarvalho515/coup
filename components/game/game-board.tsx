@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GameState, ActionType, CharacterType, Player, GameLogEntry } from "@/lib/game-logic";
-import { Coins, Crown, Skull, Shield, Users, BookOpen, X, History, Swords, AlertTriangle, RefreshCw } from "lucide-react";
+import { Coins, Crown, Skull, Shield, Users, BookOpen, X, History, Swords, AlertTriangle, RefreshCw, Hourglass, Target } from "lucide-react";
 import Image from "next/image";
 import { RulesModal } from "./rules-modal";
+import { StartingPlayerRoulette } from "./starting-player-roulette";
 
 interface TargetSelectionModalProps {
     isOpen: boolean;
@@ -29,7 +30,7 @@ function TargetSelectionModal({
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <CardUI className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-purple-500 max-w-md w-full relative animate-in zoom-in-95 duration-200">
+            <CardUI className="bg-linear-to-br from-slate-800 to-slate-900 border-2 border-purple-500 max-w-md w-full relative animate-in zoom-in-95 duration-200">
                 <Button
                     variant="ghost"
                     size="icon"
@@ -156,7 +157,7 @@ function VictoryCountdown({
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-gradient-to-br from-purple-900 to-pink-900 rounded-2xl p-8 border-4 border-yellow-500 shadow-2xl text-center animate-in zoom-in duration-500 max-w-md w-full mx-4">
+            <div className="bg-linear-to-br from-purple-900 to-pink-900 rounded-2xl p-8 border-4 border-yellow-500 shadow-2xl text-center animate-in zoom-in duration-500 max-w-md w-full mx-4">
                 <div className="text-6xl mb-4">🎉</div>
                 <h2 className="text-4xl font-bold mb-2 text-yellow-400">Victory!</h2>
                 <p className="text-2xl text-white mb-8">
@@ -255,11 +256,15 @@ function GameLogList({ groupedLogs, players }: { groupedLogs: Record<string, Gam
 export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, isHost }: GameBoardProps) {
     const [showRules, setShowRules] = useState(false);
     const [selectedTargetAction, setSelectedTargetAction] = useState<ActionType | null>(null);
+    const [hasSeenRoulette, setHasSeenRoulette] = useState(false);
 
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     const myPlayer = gameState.players.find(p => p.id === myPlayerId);
     const isMyTurn = currentPlayer.id === myPlayerId;
     const alivePlayers = gameState.players.filter(p => p.isAlive);
+
+    // Show roulette if it's the very start of the game (Turn 1, only "Game started" log) and we haven't seen it yet
+    const showRoulette = gameState.turn === 1 && gameState.log.length === 1 && !hasSeenRoulette;
 
     if (!myPlayer) return null;
 
@@ -278,8 +283,17 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
     }, {} as Record<number, typeof gameState.log>);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col lg:flex-row overflow-hidden">
+        <div className="min-h-screen bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 text-white flex flex-col lg:flex-row overflow-hidden">
             <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} />
+
+            {showRoulette && (
+                <StartingPlayerRoulette
+                    players={gameState.players}
+                    startingPlayerId={currentPlayer.id}
+                    onComplete={() => setHasSeenRoulette(true)}
+                />
+            )}
+
             <TargetSelectionModal
                 isOpen={!!selectedTargetAction}
                 onClose={() => setSelectedTargetAction(null)}
@@ -336,22 +350,56 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                         ].filter(Boolean).map((player) => {
                             const isMe = player.id === myPlayerId;
                             const isCurrentTurn = player.id === currentPlayer.id;
+                            const isTargeted = gameState.pendingAction?.targetId === player.id;
+
+                            const isWaitingForAction = (() => {
+                                if (!player.isAlive) return false;
+
+                                switch (gameState.phase) {
+                                    case 'action':
+                                    case 'exchange':
+                                        return player.id === currentPlayer.id;
+                                    case 'lose_influence':
+                                        return player.id === gameState.pendingInfluenceLoss;
+                                    case 'block_window':
+                                        return gameState.pendingAction?.actorId !== player.id && !gameState.passedPlayers.includes(player.id);
+                                    case 'challenge_window':
+                                        if (gameState.pendingBlock) {
+                                            return gameState.pendingBlock.blockerId !== player.id && !gameState.passedPlayers.includes(player.id);
+                                        }
+                                        return gameState.pendingAction?.actorId !== player.id && !gameState.passedPlayers.includes(player.id);
+                                    default:
+                                        return false;
+                                }
+                            })();
 
                             return (
                                 <div
                                     key={player.id}
-                                    className={`rounded-lg p-4 transition-all relative overflow-hidden ${isMe
-                                        ? "bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-2 border-purple-500/50 shadow-lg shadow-purple-500/20"
-                                        : isCurrentTurn
-                                            ? "bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20"
-                                            : player.isAlive
-                                                ? "bg-slate-800/50 border border-slate-700"
-                                                : "bg-slate-900/50 border border-slate-800 opacity-50"
+                                    className={`rounded-lg p-4 transition-all relative overflow-hidden ${isTargeted
+                                        ? "bg-red-900/30 border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse"
+                                        : isMe
+                                            ? "bg-linear-to-br from-purple-900/30 to-pink-900/30 border-2 border-purple-500/50 shadow-lg shadow-purple-500/20"
+                                            : isCurrentTurn
+                                                ? "bg-linear-to-br from-blue-900/30 to-cyan-900/30 border-2 border-blue-500/50 shadow-lg shadow-blue-500/20"
+                                                : player.isAlive
+                                                    ? "bg-slate-800/50 border border-slate-700"
+                                                    : "bg-slate-900/50 border border-slate-800 opacity-50"
                                         }`}
                                 >
+                                    {isTargeted && (
+                                        <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg z-20 flex items-center gap-1 animate-bounce">
+                                            <Target className="size-3" />
+                                            TARGETED
+                                        </div>
+                                    )}
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            {isMe ? (
+                                            {isTargeted ? (
+                                                <div className="bg-red-500/20 p-2 rounded-full animate-pulse">
+                                                    <Target className="size-5 text-red-400" />
+                                                </div>
+                                            ) : isMe ? (
                                                 <div className="bg-purple-500/20 p-2 rounded-full">
                                                     <Shield className="size-5 text-purple-400" />
                                                 </div>
@@ -368,6 +416,12 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                                                 <h3 className="text-lg font-bold flex items-center gap-2">
                                                     {player.name}
                                                     {isMe && <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">You</span>}
+                                                    {isWaitingForAction && (
+                                                        <span className="flex items-center gap-1 text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full border border-yellow-500/30 animate-pulse">
+                                                            <Hourglass className="size-3" />
+                                                            Waiting
+                                                        </span>
+                                                    )}
                                                 </h3>
                                                 {!player.isAlive && (
                                                     <span className="text-xs text-red-400 font-semibold">Eliminated</span>
@@ -375,15 +429,16 @@ export function GameBoard({ gameState, myPlayerId, onAction, onReturnToLobby, is
                                                 {player.isAlive && isCurrentTurn && !isMe && (
                                                     <span className="text-xs text-blue-400">Current Turn</span>
                                                 )}
+                                                {isTargeted && (
+                                                    <span className="text-xs text-red-400 font-bold animate-pulse">Targeted by Action</span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full border border-white/5">
                                             <Coins className="size-4 text-yellow-400" />
                                             <span className="text-xl font-bold text-yellow-400">{player.coins}</span>
                                         </div>
-                                    </div>
-
-                                    <div className="flex gap-3 justify-center">
+                                    </div>                                    <div className="flex gap-3 justify-center">
                                         {player.cards.map((card) => (
                                             <div
                                                 key={card.id}

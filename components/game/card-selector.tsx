@@ -51,7 +51,7 @@ export function CardSelector({
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-purple-500 max-w-2xl w-full">
+            <Card className="bg-linear-to-br from-slate-800 to-slate-900 border-2 border-purple-500 max-w-2xl w-full">
                 <CardHeader>
                     <CardTitle className="text-2xl text-purple-300">{title}</CardTitle>
                     <p className="text-slate-400">{description}</p>
@@ -91,7 +91,7 @@ export function CardSelector({
                                             fill
                                             className="object-cover"
                                         />
-                                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2 pt-8">
+                                        <div className="absolute bottom-0 inset-x-0 bg-linear-to-t from-black/90 via-black/50 to-transparent p-2 pt-8">
                                             <p className="text-center text-white font-bold text-lg shadow-black drop-shadow-md">{card.character}</p>
                                         </div>
                                         {selectedCards.includes(card.id) && (
