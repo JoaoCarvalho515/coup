@@ -73,7 +73,7 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
     if (!isConnected) {
         if (error) {
             return (
-                <div className="flex min-h-screen items-center justify-center p-4">
+                <div className="flex min-h-screen items-center justify-center p-4 bg-slate-950 text-slate-50">
                     <div className="text-center space-y-4">
                         <h1 className="text-2xl font-bold text-destructive">Connection Error</h1>
                         <p className="text-lg">{error}</p>
@@ -83,7 +83,7 @@ export function CoupGameClient({ roomCode }: CoupGameClientProps) {
             );
         }
         return (
-            <div className="flex min-h-screen items-center justify-center">
+            <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-50">
                 <div className="text-center">
                     <p className="text-xl">Connecting to game server...</p>
                 </div>
