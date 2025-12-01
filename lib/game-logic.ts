@@ -714,24 +714,28 @@ export function loseInfluence(state: GameState, playerId: string, cardId?: strin
                 if (wasChallengeSuccessful) {
                     // Block was fake, action goes through
                     state.pendingBlock = null;
+                    state.pendingChallenge = null;
                     resolveAction(state);
                 } else {
                     // Block was real, action is blocked
                     state.pendingBlock = null;
                     state.pendingAction = null;
+                    state.pendingChallenge = null;
                     endTurn(state);
                 }
             } else {
                 if (wasChallengeSuccessful) {
                     // Action was fake, turn ends
                     state.pendingAction = null;
+                    state.pendingChallenge = null;
                     endTurn(state);
                 } else {
-                    // Action was real, it succeeds
+                    // Action was real, challenge failed, action succeeds
+                    // Clear the challenge before resolving so the action can proceed
+                    state.pendingChallenge = null;
                     resolveAction(state);
                 }
             }
-            state.pendingChallenge = null;
         } else if (state.pendingAction) {
             // Regular influence loss (from coup, assassinate, etc)
             state.pendingAction = null;
