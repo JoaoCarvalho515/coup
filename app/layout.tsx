@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "Coup",
     images: [
       {
-        url: "/ui/2.jpg",
+        url: "https://tara-coup.vercel.app/ui/2.jpg",
         width: 1200,
         height: 630,
         alt: "Coup Game",
@@ -32,6 +32,12 @@ export const metadata: Metadata = {
     ],
     locale: "en_US",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Coup",
+    description: "Coup - Bluff • Deduce • Dominate",
+    images: ["https://tara-coup.vercel.app/ui/2.jpg"],
   },
 };
 
