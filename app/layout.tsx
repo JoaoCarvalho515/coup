@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     siteName: "Coup",
     images: [
       {
-        url: "/2.png",
+        url: "ui/2.png",
         width: 1200,
         height: 630,
         alt: "Coup Game",
