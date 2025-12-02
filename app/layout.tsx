@@ -14,17 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://coup.mjfactor.com"),
+  metadataBase: new URL("https://tara-coup.vercel.app"),
   title: "Coup",
   description: "Coup - Bluff • Deduce • Dominate",
   openGraph: {
     title: "Coup",
     description: "Coup - Bluff • Deduce • Dominate",
-    url: "https://coup.mjfactor.com",
+    url: "https://tara-coup.vercel.app",
     siteName: "Coup",
     images: [
       {
-        url: "/2.jpg",
+        url: "/ui/2.jpg",
         width: 1200,
         height: 630,
         alt: "Coup Game",
