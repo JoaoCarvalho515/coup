@@ -88,6 +88,7 @@ export interface GameLogEntry {
     message: string;
     playerId?: string;
     actionType?: string;
+    targetId?: string;
     turn: number;
 }
 
@@ -416,10 +417,10 @@ export function performAction(state: GameState, action: ActionRequest): GameStat
                 }
             }
         }
-        addLog(newState, message, action.actorId, action.type);
+        addLog(newState, message, action.actorId, action.type, action.targetId);
     } else if (requirements.canBeBlocked) {
         newState.phase = 'block_window';
-        addLog(newState, `${actor.name} attempts ${action.type}`, action.actorId, action.type);
+        addLog(newState, `${actor.name} attempts ${action.type}`, action.actorId, action.type, action.targetId);
     } else {
         // Income and Coup resolve immediately
         resolveAction(newState);
@@ -453,7 +454,7 @@ export function resolveAction(state: GameState): void {
 
         case 'coup':
             if (target) {
-                addLog(state, `${actor.name} coups ${target.name}`, actor.id, action.type);
+                addLog(state, `${actor.name} coups ${target.name}`, actor.id, action.type, target.id);
                 addLog(state, `${target.name} must lose influence`, target.id);
                 state.pendingInfluenceLoss = target.id;
                 state.phase = 'lose_influence';
@@ -468,7 +469,7 @@ export function resolveAction(state: GameState): void {
 
         case 'assassinate':
             if (target) {
-                addLog(state, `${actor.name} assassinates ${target.name}`, actor.id, action.type);
+                addLog(state, `${actor.name} assassinates ${target.name}`, actor.id, action.type, target.id);
                 addLog(state, `${target.name} must lose influence`, target.id);
                 state.pendingInfluenceLoss = target.id;
                 state.phase = 'lose_influence';
@@ -481,7 +482,7 @@ export function resolveAction(state: GameState): void {
                 const stolen = Math.min(2, target.coins);
                 target.coins -= stolen;
                 actor.coins += stolen;
-                addLog(state, `${actor.name} steals ${stolen} coins from ${target.name}`, actor.id, action.type);
+                addLog(state, `${actor.name} steals ${stolen} coins from ${target.name}`, actor.id, action.type, target.id);
             }
             break;
 
@@ -527,6 +528,10 @@ export function passBlock(state: GameState, playerId: string): GameState {
         // Add player to passed list if not already there
         if (!newState.passedPlayers.includes(playerId)) {
             newState.passedPlayers.push(playerId);
+            const player = getPlayer(newState, playerId);
+            if (player) {
+                addLog(newState, `${player.name} allows the action`, playerId);
+            }
         }
 
         // Check if all eligible blockers have passed
@@ -632,6 +637,10 @@ export function passChallenge(state: GameState, playerId: string): GameState {
         // Add player to passed list
         if (!newState.passedPlayers.includes(playerId)) {
             newState.passedPlayers.push(playerId);
+            const player = getPlayer(newState, playerId);
+            if (player) {
+                addLog(newState, `${player.name} allows the action`, playerId);
+            }
         }
 
         // Check if all eligible challengers have passed
@@ -966,13 +975,15 @@ export function addLog(
     state: GameState,
     message: string,
     playerId?: string,
-    actionType?: string
+    actionType?: string,
+    targetId?: string
 ): void {
     state.log.push({
         timestamp: Date.now(),
         message,
         playerId,
         actionType,
+        targetId,
         turn: state.turn,
     });
 }

@@ -5,6 +5,7 @@ import { GameBoard } from "./game-board";
 import { BlockChallengePanel } from "./block-challenge-panel";
 import { CardSelector } from "./card-selector";
 import { GameState, ActionType, CharacterType, ActionRequest, BlockRequest, ChallengeRequest } from "@/lib/game-logic";
+import { useGameSounds } from "@/hooks/use-game-sounds";
 
 interface GamePlayProps {
     gameState: GameState;
@@ -37,6 +38,9 @@ export function GamePlay({
     isHost,
     error,
 }: GamePlayProps) {
+    // Initialize game sounds
+    useGameSounds(gameState, myPlayerId);
+
     // Find my player ID from the player name
     const myPlayer = myPlayerId ? gameState.players.find(p => p.id === myPlayerId) : null;
 
