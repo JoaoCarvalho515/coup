@@ -14,16 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://coup.mjfactor.com"),
   title: "Coup",
   description: "Coup - Bluff • Deduce • Dominate",
   openGraph: {
     title: "Coup",
     description: "Coup - Bluff • Deduce • Dominate",
-    url: "https://coup.mjfactor.com", // Placeholder URL, can be updated
+    url: "https://coup.mjfactor.com",
     siteName: "Coup",
     images: [
       {
-        url: "ui/2.png",
+        url: "/ui/2.jpg",
         width: 1200,
         height: 630,
         alt: "Coup Game",
